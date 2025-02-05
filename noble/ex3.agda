@@ -73,35 +73,35 @@ data Judgment : Set where
 
 data Valid : Judgment → Set where
 
-  ⊢this : ∀ {Γ} {T} → 
+  ⊢-this : ∀ {Γ} {T} → 
     Valid (T , Γ ⊢var 0 ⦂ embed T)
-  ⊢that : ∀ {Γ} {n} {T U} → 
+  ⊢-that : ∀ {Γ} {n} {T U} → 
     Valid (Γ ⊢var n ⦂ T) → 
     Valid (U , Γ ⊢var (suc n) ⦂ embed T)
 
-  ⊢var : ∀ {Γ} {n} {T} → 
+  ⊢-var : ∀ {Γ} {n} {T} → 
     Valid (Γ ⊢var n ⦂ T) → 
     Valid (Γ ⊢ var n ⦂ T)
 
-  ⊢lam : ∀ {Γ} {T U b} → 
+  ⊢-lam : ∀ {Γ} {T U b} → 
     Valid (T , Γ ⊢ b ⦂ U) → 
     Valid (Γ ⊢ lam b ⦂ pi T U)
 
-  ⊢app : ∀ {Γ} {T U f a} → 
+  ⊢-app : ∀ {Γ} {T U f a} → 
     Valid (Γ ⊢ f ⦂ pi T U) → 
     Valid (Γ ⊢ a ⦂ T) → 
     Valid (Γ ⊢ app f a ⦂ substitute 0 T U)
 
-  ⊢pi : ∀ {Γ} {T U} → 
+  ⊢-pi : ∀ {Γ} {T U} → 
     Valid (Γ ⊢ T ⦂ uni) → 
     Valid (T , Γ ⊢ U ⦂ uni) → 
     Valid (Γ ⊢ pi T U ⦂ uni)
 
-  ⊢uni : ∀ {Γ} →
+  ⊢-uni : ∀ {Γ} →
     Valid (Γ ⊢ uni ⦂ uni)
 
-  ⊢embed : ∀ {Γ} {T U a} →
-    Valid (Γ ⊢ a ⦂ T )→ 
+  ⊢-embed : ∀ {Γ} {T U a} →
+    Valid (Γ ⊢ a ⦂ T) → 
     Valid (U , Γ ⊢ embed a ⦂ embed T)
 
   -- accepted as necessary for this experiment
@@ -113,34 +113,25 @@ data Valid : Judgment → Set where
     Valid (Γ ⊢ a ⦂ T) → 
     Valid (Γ ⊢ a ⦂ U)
 
-  -- -- what other rules are required?
-  -- -- answer: typed version of equivalence properties as axioms
-  -- -- but actually these don't even need to be derivation rules, they can just be
-  -- -- postulated terms of the appropriate types
+  -- what other rules are required?
+  -- answer: typed version of equivalence properties as axioms
+  -- but actually these don't even need to be derivation rules, they can just be
+  -- postulated terms of the appropriate types
 
---   ⊢reflexivity : ∀ a →
---     a ≡ a
+  ≡-reflexivity : ∀ {a} →
+    Valid (a ≡ a)
 
---   -- ⊢symmetry : ∀ {Γ} {T a b p} → 
---   --   Γ ⊢ T ⦂ uni →
---   --   Γ ⊢ a ⦂ T →
---   --   Γ ⊢ b ⦂ T →
---   --   Γ ⊢ p ⦂ eq a b →
---   --   Γ ⊢ p ⦂ eq b a
+  ≡-symmetry : ∀ {a b} →
+    Valid (a ≡ b) → 
+    Valid (b ≡ a)
 
---   -- ⊢transitivity : ∀ {Γ} {T a b c p1 p2} → 
---   --   Γ ⊢ T ⦂ uni →
---   --   Γ ⊢ a ⦂ T →
---   --   Γ ⊢ b ⦂ T →
---   --   Γ ⊢ c ⦂ T →
---   --   Γ ⊢ p1 ⦂ eq a b →
---   --   Γ ⊢ p2 ⦂ eq b c →
---   --   Γ ⊢ p1 ⦂ eq a c
+  ≡-transitivity : ∀ {a b c} → 
+    Valid (a ≡ b) → 
+    Valid (b ≡ c) → 
+    Valid (a ≡ c)
+  
+  ≡-congruence : ∀ {a b c} → 
+    Valid (a ≡ b) → 
+    Valid (substitute 0 c a ≡ substitute 0 c b)
 
---   -- ⊢congruence : ∀ {Γ} {T a b R c p} → 
---   --   Γ ⊢ T ⦂ uni →
---   --   Γ ⊢ a ⦂ T → 
---   --   Γ ⊢ b ⦂ T → 
---   --   Γ ⊢ p ⦂ eq a b →
---   --   Γ ⊢ substitute 0 a c ⦂ substitute 0 a R →
---   --   Γ ⊢ substitute 0 b c ⦂ substitute 0 b R
+-- desired properties: ...
