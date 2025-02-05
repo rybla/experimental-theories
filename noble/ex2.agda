@@ -112,6 +112,30 @@ data _⊢_⦂_ : Ctx → Syn → Syn → Set where
     Γ ⊢ a ⦂ R
 
   -- what other rules are required?
+  -- answer: typed version of equivalence properties as axioms
+  -- but actually these don't even need to be derivation rules, they can just be
+  -- postulated terms of the appropriate types
+
+  ⊢reflexivity : ∀ {Γ} {T a} → 
+    Γ ⊢ T ⦂ uni →
+    Γ ⊢ a ⦂ T →
+    Γ ⊢ path a ⦂ eq a a
+
+  ⊢symmetry : ∀ {Γ} {T a b p} → 
+    Γ ⊢ T ⦂ uni →
+    Γ ⊢ a ⦂ T →
+    Γ ⊢ b ⦂ T →
+    Γ ⊢ p ⦂ eq a b →
+    Γ ⊢ p ⦂ eq b a
+
+  ⊢transitivity : ∀ {Γ} {T a b c p1 p2} → 
+    Γ ⊢ T ⦂ uni →
+    Γ ⊢ a ⦂ T →
+    Γ ⊢ b ⦂ T →
+    Γ ⊢ c ⦂ T →
+    Γ ⊢ p1 ⦂ eq a b →
+    Γ ⊢ p2 ⦂ eq b c →
+    Γ ⊢ p1 ⦂ eq a c
 
   ⊢congruence : ∀ {Γ} {T a b R c p} → 
     Γ ⊢ T ⦂ uni →
@@ -124,7 +148,6 @@ data _⊢_⦂_ : Ctx → Syn → Syn → Set where
 --------------------------------------------------------------------------------
 -- properties to prove
 --------------------------------------------------------------------------------
-
 
 -- reflexivity : ∀ T (a : T) → a ≡ a
 reflexivity' : Syn
