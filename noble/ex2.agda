@@ -7,13 +7,17 @@ Or, can they be derived all from a simple clever definition?
 
 open import Data.Nat
 
+--------------------------------------------------------------------------------
 -- infix precendences
+--------------------------------------------------------------------------------
 
 infix 10 _⊢var_⦂_
 infix 10 _⊢_⦂_
 infixr 11 _,_
 
+--------------------------------------------------------------------------------
 -- syntax
+--------------------------------------------------------------------------------
 
 data Syn : Set where
   var : ℕ → Syn
@@ -24,13 +28,9 @@ data Syn : Set where
   eq : Syn → Syn → Syn
   path : Syn → Syn
 
--- context
-
-data Ctx : Set where
-  ∅ : Ctx
-  _,_ : Syn → Ctx → Ctx
-
--- weakening
+--------------------------------------------------------------------------------
+-- embedding into larger context
+--------------------------------------------------------------------------------
 
 embed : Syn → Syn
 embed (var x) = var (x + 1)
@@ -41,7 +41,9 @@ embed uni = uni
 embed (eq a b) = eq (embed a) (embed b)
 embed (path a) = path (embed a)
 
+--------------------------------------------------------------------------------
 -- substitution
+--------------------------------------------------------------------------------
 
 substitute : ℕ → Syn → Syn → Syn
 substitute x v (var y) with compare x y
@@ -55,7 +57,13 @@ substitute n v uni = uni
 substitute n v (eq a b) = eq (substitute n v a) (substitute n v b)
 substitute n v (path a) = path (substitute n v a)
 
+--------------------------------------------------------------------------------
 -- typing derivation
+--------------------------------------------------------------------------------
+
+data Ctx : Set where
+  ∅ : Ctx
+  _,_ : Syn → Ctx → Ctx
 
 data _⊢var_⦂_ : Ctx → ℕ → Syn → Set where
   ⊢this : ∀ {Γ} {T} →
@@ -66,6 +74,9 @@ data _⊢var_⦂_ : Ctx → ℕ → Syn → Set where
     R , Γ ⊢var (suc n) ⦂ embed T
 
 data _⊢_⦂_ : Ctx → Syn → Syn → Set where
+
+  -- strictly necessary
+
   ⊢var : ∀ {Γ} {n} {T} →
     Γ ⊢var n ⦂ T →
     Γ ⊢ (var n) ⦂ T
@@ -91,12 +102,16 @@ data _⊢_⦂_ : Ctx → Syn → Syn → Set where
     Γ ⊢ a ⦂ T → 
     S , Γ ⊢ embed a ⦂ embed T
 
+  -- accepted as necessary for this experiment
+
   ⊢transport : ∀ {Γ} {T R p a} →
     Γ ⊢ T ⦂ uni → 
     Γ ⊢ R ⦂ uni →
     Γ ⊢ p ⦂ eq T R → 
     Γ ⊢ a ⦂ T → 
     Γ ⊢ a ⦂ R
+
+  -- what other rules are required?
 
   ⊢congruence : ∀ {Γ} {T a b R c p} → 
     Γ ⊢ T ⦂ uni →
@@ -105,6 +120,11 @@ data _⊢_⦂_ : Ctx → Syn → Syn → Set where
     Γ ⊢ p ⦂ eq a b →
     Γ ⊢ substitute 0 a c ⦂ substitute 0 a R →
     Γ ⊢ substitute 0 b c ⦂ substitute 0 b R
+
+--------------------------------------------------------------------------------
+-- properties to prove
+--------------------------------------------------------------------------------
+
 
 -- reflexivity : ∀ T (a : T) → a ≡ a
 reflexivity' : Syn
