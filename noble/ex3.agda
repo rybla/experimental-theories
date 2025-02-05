@@ -114,9 +114,17 @@ data Valid : Judgment → Set where
     Valid (Γ ⊢ a ⦂ U)
 
   -- what other rules are required?
-  -- answer: typed version of equivalence properties as axioms
+  -- answer: typed version of equivalence properties as axioms.
   -- but actually these don't even need to be derivation rules, they can just be
-  -- postulated terms of the appropriate types
+  -- postulated terms of the appropriate types.
+
+  -- basically the way I've set it up now, you just have to build every
+  -- equivalence out of these rules.
+  -- but clearly, that's not good enough; you might want to use axioms and such.
+  -- and of course, what about beta-equivalence and (maybe) eta-equivalence?
+  -- are those provably with these? no!
+  -- because there's no way to write the spec of an equivalence property that
+  -- requires quantification
 
   ≡-reflexivity : ∀ {a} →
     Valid (a ≡ a)
