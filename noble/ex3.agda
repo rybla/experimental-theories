@@ -66,14 +66,6 @@ data Ctx : Set where
   ∅ : Ctx
   _,_ : Syn → Ctx → Ctx
 
--- data _⊢var_⦂_ : Ctx → ℕ → Syn → Set where
---   ⊢this : ∀ {Γ} {T} →
---     T , Γ ⊢var 0 ⦂ embed T
-
---   ⊢that : ∀ {Γ} {n} {T R} →
---     Γ ⊢var n ⦂ T → 
---     R , Γ ⊢var (suc n) ⦂ embed T
-
 data Judgment : Set where
   _⊢var_⦂_ : Ctx → ℕ → Syn → Judgment
   _⊢_⦂_ : Ctx → Syn → Syn → Judgment
@@ -152,4 +144,3 @@ data Valid : Judgment → Set where
 --   --   Γ ⊢ p ⦂ eq a b →
 --   --   Γ ⊢ substitute 0 a c ⦂ substitute 0 a R →
 --   --   Γ ⊢ substitute 0 b c ⦂ substitute 0 b R
-
