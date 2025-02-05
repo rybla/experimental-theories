@@ -36,7 +36,7 @@ data Syn : Set where
 embed : Syn → Syn
 embed (var x) = var (x + 1)
 embed (lam b) = lam (embed b)
-embed (app f a) = app (embed f) (embed a)
+embed (app b a) = app (embed b) (embed a)
 embed (pi a b) = pi (embed a) (embed b)
 embed uni = uni
 embed (eq a b) = eq (embed a) (embed b)
@@ -52,7 +52,7 @@ substitute x v (var y) | less .x k {- y = suc (x + k) -} = var (x + k)
 substitute x v (var y) | equal .x = v
 substitute x v (var y) | greater .y k = var y
 substitute n v (lam b) = lam (substitute (n + 1) (embed v) b)
-substitute n v (app f a) = app (substitute n v f) (substitute n v a)
+substitute n v (app b a) = app (substitute n v b) (substitute n v a)
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (embed v) b)
 substitute n v uni = uni
 substitute n v (eq a b) = eq (substitute n v a) (substitute n v b)
@@ -87,10 +87,10 @@ data Valid : Judgment → Set where
     Valid (T , Γ ⊢ b ⦂ U) → 
     Valid (Γ ⊢ lam b ⦂ pi T U)
 
-  ⊢-app : ∀ {Γ} {T U f a} → 
-    Valid (Γ ⊢ f ⦂ pi T U) → 
+  ⊢-app : ∀ {Γ} {T U b a} → 
+    Valid (Γ ⊢ b ⦂ pi T U) → 
     Valid (Γ ⊢ a ⦂ T) → 
-    Valid (Γ ⊢ app f a ⦂ substitute 0 T U)
+    Valid (Γ ⊢ app b a ⦂ substitute 0 T U)
 
   ⊢-pi : ∀ {Γ} {T U} → 
     Valid (Γ ⊢ T ⦂ uni) → 
@@ -114,17 +114,6 @@ data Valid : Judgment → Set where
     Valid (Γ ⊢ a ⦂ U)
 
   -- what other rules are required?
-  -- answer: typed version of equivalence properties as axioms.
-  -- but actually these don't even need to be derivation rules, they can just be
-  -- postulated terms of the appropriate types.
-
-  -- basically the way I've set it up now, you just have to build every
-  -- equivalence out of these rules.
-  -- but clearly, that's not good enough; you might want to use axioms and such.
-  -- and of course, what about beta-equivalence and (maybe) eta-equivalence?
-  -- are those provably with these? no!
-  -- because there's no way to write the spec of an equivalence property that
-  -- requires quantification
 
   ≡-reflexivity : ∀ {a} →
     Valid (a ≡ a)
@@ -142,4 +131,9 @@ data Valid : Judgment → Set where
     Valid (a ≡ b) → 
     Valid (substitute 0 c a ≡ substitute 0 c b)
 
--- desired properties: ...
+  ≡-beta : ∀ {a b} →
+    Valid (app b a ≡ substitute 0 a b)
+
+-- PROBLEM: which this all works for in-place proofs of equivlance, it doesn't
+-- let you state properties of equivalence and prove lemmas about it
+
