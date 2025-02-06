@@ -82,82 +82,87 @@ data Judgment : Set where
   _⊢var_⦂_ : Ctx → ℕ → Syn → Judgment
   _⊢_⦂_ : Ctx → Syn → Syn → Judgment
 
-data Valid : Judgment → Set where
+data Drv : Judgment → Set where
+
+  -- ⊢var rules
 
   ⊢var-this : ∀ {Γ} {T} → 
-    Valid (T , Γ ⊢var 0 ⦂ embed T)
+    Drv (T , Γ ⊢var 0 ⦂ embed T)
   ⊢var-that : ∀ {Γ} {n} {T U} → 
-    Valid (Γ ⊢var n ⦂ T) → 
-    Valid (U , Γ ⊢var (suc n) ⦂ embed T)
+    Drv (Γ ⊢var n ⦂ T) → 
+    Drv (U , Γ ⊢var (suc n) ⦂ embed T)
 
   ⊢-var : ∀ {Γ} {n} {T} → 
-    Valid (Γ ⊢var n ⦂ T) → 
-    Valid (Γ ⊢ var n ⦂ T)
+    Drv (Γ ⊢var n ⦂ T) → 
+    Drv (Γ ⊢ var n ⦂ T)
+
+  -- ⊢ rules
 
   ⊢-lam : ∀ {Γ} {T U b} → 
-    Valid (T , Γ ⊢ b ⦂ U) → 
-    Valid (Γ ⊢ lam b ⦂ pi T U)
+    Drv (T , Γ ⊢ b ⦂ U) → 
+    Drv (Γ ⊢ lam b ⦂ pi T U)
 
   ⊢-app : ∀ {Γ} {T U b a} → 
-    Valid (Γ ⊢ b ⦂ pi T U) → 
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (Γ ⊢ app b a ⦂ substitute 0 T U)
+    Drv (Γ ⊢ b ⦂ pi T U) → 
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ app b a ⦂ substitute 0 T U)
 
   ⊢-pi : ∀ {Γ} {T U} → 
-    Valid (Γ ⊢ T ⦂ uni) → 
-    Valid (T , Γ ⊢ U ⦂ uni) → 
-    Valid (Γ ⊢ pi T U ⦂ uni)
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (T , Γ ⊢ U ⦂ uni) → 
+    Drv (Γ ⊢ pi T U ⦂ uni)
 
   ⊢-uni : ∀ {Γ} →
-    Valid (Γ ⊢ uni ⦂ uni)
+    Drv (Γ ⊢ uni ⦂ uni)
 
   ⊢-embed : ∀ {Γ} {T U a} →
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (U , Γ ⊢ embed a ⦂ embed T)
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (U , Γ ⊢ embed a ⦂ embed T)
 
   -- accepted as necessary for this experiment
 
   ⊢-transport : ∀ {Γ} {T U p a} →
-    Valid (Γ ⊢ T ⦂ uni) → 
-    Valid (Γ ⊢ U ⦂ uni) →
-    Valid (Γ ⊢ p ⦂ T ≡ U) → 
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (Γ ⊢ a ⦂ U)
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ U ⦂ uni) →
+    Drv (Γ ⊢ p ⦂ T ≡ U) → 
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ a ⦂ U)
 
-  -- what other rules are required?
+  -- ≡ rules
 
   ≡-reflexivity : ∀ {Γ} {T a} →
-    Valid (Γ ⊢ T ⦂ uni) →
-    Valid (Γ ⊢ reflexivity T a a ⦂ a ≡ a)
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ reflexivity T a a ⦂ a ≡ a)
 
   ≡-symmetry : ∀ {Γ} {T a b p} →
-    Valid (Γ ⊢ T ⦂ uni) → 
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (Γ ⊢ b ⦂ T) → 
-    Valid (Γ ⊢ p ⦂ a ≡ b) → 
-    Valid (Γ ⊢ symmetry p ⦂ b ≡ a)
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ b ⦂ T) → 
+    Drv (Γ ⊢ p ⦂ a ≡ b) → 
+    Drv (Γ ⊢ symmetry p ⦂ b ≡ a)
 
   ≡-transitivity : ∀ {Γ} {T a b c p1 p2} → 
-    Valid (Γ ⊢ T ⦂ uni) → 
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (Γ ⊢ b ⦂ T) → 
-    Valid (Γ ⊢ c ⦂ T) → 
-    Valid (Γ ⊢ p1 ⦂ a ≡ b) → 
-    Valid (Γ ⊢ p2 ⦂ b ≡ c) → 
-    Valid (Γ ⊢ transitivity p1 p2 ⦂ a ≡ c)
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ b ⦂ T) → 
+    Drv (Γ ⊢ c ⦂ T) → 
+    Drv (Γ ⊢ p1 ⦂ a ≡ b) → 
+    Drv (Γ ⊢ p2 ⦂ b ≡ c) → 
+    Drv (Γ ⊢ transitivity p1 p2 ⦂ a ≡ c)
   
   ≡-congruence : ∀ {Γ} {T a b p U c} →
-    Valid (Γ ⊢ T ⦂ uni) →
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (Γ ⊢ b ⦂ T) → 
-    Valid (Γ ⊢ p ⦂ a ≡ b) → 
-    Valid (T , Γ ⊢ c ⦂ U) →
-    Valid (Γ ⊢ congruence a b c p ⦂ substitute 0 a c ≡ substitute 0 b c)
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ b ⦂ T) → 
+    Drv (Γ ⊢ p ⦂ a ≡ b) → 
+    Drv (T , Γ ⊢ c ⦂ U) →
+    Drv (Γ ⊢ congruence a b c p ⦂ substitute 0 a c ≡ substitute 0 b c)
 
   ≡-beta : ∀ {Γ} {T a U b} →
-    Valid (Γ ⊢ T ⦂ uni) →
-    Valid (Γ ⊢ a ⦂ T) → 
-    Valid (T , Γ ⊢ b ⦂ U) → 
-    Valid (Γ ⊢ beta a b ⦂ app b a ≡ substitute 0 a b)
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (T , Γ ⊢ b ⦂ U) → 
+    Drv (Γ ⊢ beta a b ⦂ app b a ≡ substitute 0 a b)
 
 -- what's wrong with this system?
+
