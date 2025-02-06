@@ -1,9 +1,13 @@
 {-
+
+# Ex4
+
 If we accept ⊢that transport must be a typing derivation rule, 
 then what are the minimal other rulesthat are required to define equivalence?
 Do we really need to postulate all the usual equivalence properties? 
 Or, can they be derived all from a simple clever definition or smaller set of 
 rules?
+
 -}
 
 open import Data.Nat
@@ -121,7 +125,7 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (U , Γ ⊢ embed a ⦂ embed T)
 
-  -- accepted as necessary for this experiment
+  -- accepted as necessary for this experiment.
   -- transport is special:
   -- changes the type of a term, which can't be expressed in the type of a term
   ⊢-transport : ∀ {Γ} {T U p a} →
@@ -139,7 +143,8 @@ data Drv : Judgment → Set where
     Drv (T , Γ ⊢ b ⦂ U) → 
     Drv (Γ ⊢ beta ∙ a ∙ b ⦂ b ∙ a ≡ substitute 0 a b)
 
-  -- the following are not special; they're just non-computational terms that are 
+  -- the following are not special;
+  -- they're just non-computational terms that are.
 
   -- ≡-reflexivity : ∀ T (a : T) → a ≡ a
   ≡-reflexivity : Drv (
