@@ -10,7 +10,9 @@ It would be nice for the definition of equality to immediately yield
 
 ## ex3
 
-This experiment has equality _only_ be able to be reasoned about via
+This experiment has equality _only_ be able to be reasoned about as a derivation, since there are no term witnesses to equality.
+
+In essence, the derivation is the witness of the equality.
 
 ## ex4
 

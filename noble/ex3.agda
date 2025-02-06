@@ -1,8 +1,7 @@
 {-
-If we accept ⊢that transport must be a typing derivation rule, 
-then what are the minimal other rules ⊢that are required to define equivalence?
-Do we really need to postulate all the usual equivalence properties? 
-Or, can they be derived all from a simple clever definition?
+- axiomatic transport
+- axiomatic equality
+- axiomatic equality proof rules as derivation rules
 -}
 
 open import Data.Nat
@@ -99,16 +98,12 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (U , Γ ⊢ embed a ⦂ embed T)
 
-  -- accepted as necessary for this experiment
-
   ⊢transport : ∀ {Γ} {T U a} →
     Drv (Γ ⊢ T ⦂ uni) → 
     Drv (Γ ⊢ U ⦂ uni) →
     Drv (Γ ⊢ T ≡ U) → 
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
-
-  -- what other rules are required?
 
   ≡-reflexivity : ∀ {Γ} {T a} →
     Drv (Γ ⊢ T ⦂ uni) → 
@@ -135,16 +130,13 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ T ⦂ uni) → 
     Drv (Γ ⊢ a ⦂ T) →
     Drv (Γ ⊢ b ⦂ T) →
-    Drv (T , Γ ⊢ c ⦂ U) →
+    Drv (Γ ⊢ c ⦂ pi T U) →
     Drv (Γ ⊢ a ≡ b) → 
-    Drv (Γ ⊢ substitute 0 c a ≡ substitute 0 c b)
+    Drv (Γ ⊢ c ∙ a ≡ c ∙ b)
 
   ≡-beta : ∀ {Γ} {T a b} →
     Drv (Γ ⊢ T ⦂ uni) → 
     Drv (Γ ⊢ a ⦂ T) →
     Drv (Γ ⊢ b ⦂ T) →
     Drv (Γ ⊢ b ∙ a ≡ substitute 0 a b)
-
--- PROBLEM: which this all works for in-place proofs of equivlance, it doesn't
--- let you state properties of equivalence and prove lemmas about it
 
