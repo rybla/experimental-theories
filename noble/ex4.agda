@@ -1,8 +1,9 @@
 {-
 If we accept ⊢that transport must be a typing derivation rule, 
-then what are the minimal other rules ⊢that are required to define equivalence?
+then what are the minimal other rulesthat are required to define equivalence?
 Do we really need to postulate all the usual equivalence properties? 
-Or, can they be derived all from a simple clever definition?
+Or, can they be derived all from a simple clever definition or smaller set of 
+rules?
 -}
 
 open import Data.Nat
@@ -15,6 +16,7 @@ infix 10 _⊢var_⦂_
 infix 10 _⊢_⦂_
 infix 11 _≡_
 infixr 20 _,_
+infixl 20 _∙_
 
 --------------------------------------------------------------------------------
 -- syntax
@@ -23,15 +25,15 @@ infixr 20 _,_
 data Syn : Set where
   var : ℕ → Syn
   lam : Syn → Syn
-  app : Syn → Syn → Syn
+  _∙_ : Syn → Syn → Syn
   pi : Syn → Syn → Syn
   uni : Syn
   _≡_ : Syn → Syn → Syn
-  reflexivity : Syn → Syn → Syn → Syn
-  symmetry : Syn → Syn
-  transitivity : Syn → Syn → Syn
-  congruence : Syn → Syn → Syn → Syn → Syn
-  beta : Syn → Syn → Syn
+  reflexivity : Syn
+  symmetry : Syn
+  transitivity : Syn
+  congruence : Syn
+  beta : Syn
 
 --------------------------------------------------------------------------------
 -- embedding into larger context
@@ -40,15 +42,15 @@ data Syn : Set where
 embed : Syn → Syn
 embed (var x) = var (x + 1)
 embed (lam b) = lam (embed b)
-embed (app b a) = app (embed b) (embed a)
+embed (b ∙ a) = embed b ∙ embed a
 embed (pi a b) = pi (embed a) (embed b)
 embed uni = uni
 embed (a ≡ b) = embed a ≡ embed b
-embed (reflexivity T a b) = reflexivity (embed T) (embed a) (embed b)
-embed (symmetry p) = symmetry (embed p)
-embed (transitivity p1 p2) = transitivity (embed p1) (embed p2)
-embed (congruence a b c p) = congruence (embed a) (embed b) (embed c) (embed p)
-embed (beta b a) = beta (embed b) (embed a)
+embed reflexivity = reflexivity
+embed symmetry = symmetry
+embed transitivity = transitivity
+embed congruence = congruence
+embed beta = beta
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -60,15 +62,15 @@ substitute x v (var y) | less .x k {- y = suc (x + k) -} = var (x + k)
 substitute x v (var y) | equal .x = v
 substitute x v (var y) | greater .y k = var y
 substitute n v (lam b) = lam (substitute (n + 1) (embed v) b)
-substitute n v (app b a) = app (substitute n v b) (substitute n v a)
+substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (embed v) b)
 substitute n v uni = uni
 substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
-substitute n v (reflexivity T a b) = reflexivity (substitute n v T) (substitute n v a) (substitute n v b)
-substitute n v (symmetry p) = symmetry (substitute n v p)
-substitute n v (transitivity p1 p2) = transitivity (substitute n v p1) (substitute n v p2)
-substitute n v (congruence a b c p) = congruence (substitute n v a) (substitute n v b) (substitute n v c) (substitute n v p)
-substitute n v (beta b a) = beta (substitute n v b) (substitute n v a)
+substitute n v reflexivity = reflexivity
+substitute n v symmetry = reflexivity
+substitute n v transitivity = reflexivity
+substitute n v congruence = reflexivity
+substitute n v beta = reflexivity
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -105,7 +107,7 @@ data Drv : Judgment → Set where
   ⊢-app : ∀ {Γ} {T U b a} → 
     Drv (Γ ⊢ b ⦂ pi T U) → 
     Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ app b a ⦂ substitute 0 T U)
+    Drv (Γ ⊢ b ∙ a ⦂ substitute 0 T U)
 
   ⊢-pi : ∀ {Γ} {T U} → 
     Drv (Γ ⊢ T ⦂ uni) → 
@@ -130,39 +132,25 @@ data Drv : Judgment → Set where
 
   -- ≡ rules
 
-  ≡-reflexivity : ∀ {Γ} {T a} →
-    Drv (Γ ⊢ T ⦂ uni) →
-    Drv (Γ ⊢ reflexivity T a a ⦂ a ≡ a)
-
-  ≡-symmetry : ∀ {Γ} {T a b p} →
-    Drv (Γ ⊢ T ⦂ uni) → 
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ b ⦂ T) → 
-    Drv (Γ ⊢ p ⦂ a ≡ b) → 
-    Drv (Γ ⊢ symmetry p ⦂ b ≡ a)
-
-  ≡-transitivity : ∀ {Γ} {T a b c p1 p2} → 
-    Drv (Γ ⊢ T ⦂ uni) → 
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ b ⦂ T) → 
-    Drv (Γ ⊢ c ⦂ T) → 
-    Drv (Γ ⊢ p1 ⦂ a ≡ b) → 
-    Drv (Γ ⊢ p2 ⦂ b ≡ c) → 
-    Drv (Γ ⊢ transitivity p1 p2 ⦂ a ≡ c)
-  
+  -- must be a Drv rather than just a postulate since uses substitute
   ≡-congruence : ∀ {Γ} {T a b p U c} →
     Drv (Γ ⊢ T ⦂ uni) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ b ⦂ T) → 
     Drv (Γ ⊢ p ⦂ a ≡ b) → 
     Drv (T , Γ ⊢ c ⦂ U) →
-    Drv (Γ ⊢ congruence a b c p ⦂ substitute 0 a c ≡ substitute 0 b c)
+    Drv (Γ ⊢ congruence ∙ a ∙ b ∙ c ∙ p ⦂ substitute 0 a c ≡ substitute 0 b c)
 
+  -- must be a Drv rather than just a postulate since uses substitute
   ≡-beta : ∀ {Γ} {T a U b} →
     Drv (Γ ⊢ T ⦂ uni) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (T , Γ ⊢ b ⦂ U) → 
-    Drv (Γ ⊢ beta a b ⦂ app b a ≡ substitute 0 a b)
+    Drv (Γ ⊢ beta ∙ a ∙ b ⦂ b ∙ a ≡ substitute 0 a b)
 
--- what's wrong with this system?
-
+-- ≡-reflexivity : ∀ T (a : T) → a ≡ a
+postulate ≡-reflexivity : Drv (∅ ⊢ reflexivity ⦂ pi uni (pi (var 0) (var 0 ≡ var 0)))
+-- ≡-symmetry : ∀ T (a b : T) → a ≡ b → b ≡ a
+postulate ≡-symmetry : Drv (∅ ⊢ symmetry ⦂ pi uni (pi (var 0) (pi (var 0) (pi (var 1 ≡ var 0) (var 1 ≡ var 2)))))
+-- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
+postulate ≡-transitivity : Drv (∅ ⊢ transitivity ⦂ pi uni (pi (var 0) (pi (var 1) (pi (var 2) (pi (var 2 ≡ var 1) (pi (var 2 ≡ var 1) (var 4 ≡ var 2)))))))
