@@ -17,12 +17,6 @@ This model takes the following as axiomatic:
 - equivalence properties (reflexivity, symmetry, transitivity, congruence) 
   as typing derivations
 
-## Remarks
-
-This does seem to work, but it has a few weird parts.
-
-One weird part is that 
-
 -}
 
 open import Data.Nat
