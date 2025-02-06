@@ -139,8 +139,8 @@ data Drv : Judgment → Set where
   ⊢-uni : ∀ {Γ} →
     Drv (Γ ⊢ uni ⦂ uni)
   
-  ⊢-equivalent : ∀ {Γ} →
-    Drv (Γ ⊢ equivalent ⦂ pi uni (pi uni uni))
+  ⊢-equivalent :
+    Drv (∅ ⊢ equivalent ⦂ pi uni (pi uni uni))
 
   ⊢-embed : ∀ {Γ} {T U a} →
     Drv (Γ ⊢ a ⦂ T) → 
