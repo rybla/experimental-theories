@@ -122,7 +122,8 @@ data Drv : Judgment → Set where
     Drv (U , Γ ⊢ embed a ⦂ embed T)
 
   -- accepted as necessary for this experiment
-
+  -- transport is special:
+  -- changes the type of a term, which can't be expressed in the type of a term
   ⊢-transport : ∀ {Γ} {T U p a} →
     Drv (Γ ⊢ T ⦂ uni) → 
     Drv (Γ ⊢ U ⦂ uni) →
@@ -130,27 +131,81 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
-  -- ≡ rules
-
-  -- must be a Drv rather than just a postulate since uses substitute
-  ≡-congruence : ∀ {Γ} {T a b p U c} →
-    Drv (Γ ⊢ T ⦂ uni) →
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ b ⦂ T) → 
-    Drv (Γ ⊢ p ⦂ a ≡ b) → 
-    Drv (T , Γ ⊢ c ⦂ U) →
-    Drv (Γ ⊢ congruence ∙ a ∙ b ∙ c ∙ p ⦂ substitute 0 a c ≡ substitute 0 b c)
-
-  -- must be a Drv rather than just a postulate since uses substitute
+  -- beta is special: 
+  -- uses substitute, which can't appear in the type of a term
   ≡-beta : ∀ {Γ} {T a U b} →
     Drv (Γ ⊢ T ⦂ uni) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (T , Γ ⊢ b ⦂ U) → 
     Drv (Γ ⊢ beta ∙ a ∙ b ⦂ b ∙ a ≡ substitute 0 a b)
 
--- ≡-reflexivity : ∀ T (a : T) → a ≡ a
-postulate ≡-reflexivity : Drv (∅ ⊢ reflexivity ⦂ pi uni (pi (var 0) (var 0 ≡ var 0)))
--- ≡-symmetry : ∀ T (a b : T) → a ≡ b → b ≡ a
-postulate ≡-symmetry : Drv (∅ ⊢ symmetry ⦂ pi uni (pi (var 0) (pi (var 0) (pi (var 1 ≡ var 0) (var 1 ≡ var 2)))))
--- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
-postulate ≡-transitivity : Drv (∅ ⊢ transitivity ⦂ pi uni (pi (var 0) (pi (var 1) (pi (var 2) (pi (var 2 ≡ var 1) (pi (var 2 ≡ var 1) (var 4 ≡ var 2)))))))
+  -- the following are not special; they're just non-computational terms that are 
+
+  -- ≡-reflexivity : ∀ T (a : T) → a ≡ a
+  ≡-reflexivity : Drv (
+      ∅ ⊢ reflexivity ⦂ 
+        -- pi (T : uni)
+        pi uni (
+        -- pi (a : T)
+        pi {- a : T -} (var 0) (
+          -- a ≡ a
+          var 0 ≡ var 0
+        ))
+    )
+
+  -- ≡-symmetry : ∀ T (a b : T) → a ≡ b → b ≡ a
+  ≡-symmetry : Drv (
+      ∅ ⊢ symmetry ⦂ 
+        -- pi (T : uni)
+        pi uni (
+        -- pi (a : T)
+        pi (var 0) (
+        -- pi (b : T)
+        pi (var 0) (
+        -- pi (_ : a ≡ b)
+        pi (var 1 ≡ var 0) (
+          -- b ≡ a
+          var 1 ≡ var 2
+        ))))
+    )
+
+  
+  -- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
+  ≡-transitivity : Drv (
+      ∅ ⊢ transitivity ⦂ 
+        -- pi (T : uni)
+        pi uni (
+        -- pi (a : T)
+        pi (var 0) (
+        -- pi (b : T)
+        pi (var 1) (
+        -- pi (c : T)
+        pi (var 2) (
+        -- pi (_ : a ≡ b)
+        pi (var 2 ≡ var 1) (
+        -- pi (_ : b ≡ c)
+        pi (var 2 ≡ var 1) (
+          -- pi (_ : a ≡ c)
+          var 4 ≡ var 2
+        ))))))
+    )
+
+  -- ≡-congruence : ∀ T (a b : T) U (c : pi T U) → a ≡ b → c a ≡ c b
+  ≡-congruence : Drv (
+      ∅ ⊢ congruence ⦂ 
+        -- pi (T : uni)
+        pi  uni (
+        -- pi (a : T)
+        pi (var 0)  (
+        -- pi (b : T)
+        pi (var 1) (
+        -- pi (U : uni)
+        pi  uni (
+        -- pi (c : pi T U)
+        pi (pi (var 3) (var 1)) (
+        -- pi (_ : a ≡ b)
+        pi {- a ≡ b -} (var 2 ≡ var 1) (
+          -- c a ≡ c b
+          (var 1 ∙ var 4 ≡ var 1 ∙ var 3)
+        ))))))
+    )
