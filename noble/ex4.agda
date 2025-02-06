@@ -8,6 +8,21 @@ Do we really need to postulate all the usual equivalence properties?
 Or, can they be derived all from a simple clever definition or smaller set of 
 rules?
 
+## Summary
+
+This model takes the following as axiomatic:
+- equivlance type family: equivalent
+- transport typing derivation
+- beta-equivalence typing derivation
+- equivalence properties (reflexivity, symmetry, transitivity, congruence) 
+  as typing derivations
+
+## Remarks
+
+This does seem to work, but it has a few weird parts.
+
+One weird part is that 
+
 -}
 
 open import Data.Nat
@@ -32,12 +47,15 @@ data Syn : Set where
   _∙_ : Syn → Syn → Syn
   pi : Syn → Syn → Syn
   uni : Syn
-  _≡_ : Syn → Syn → Syn
+  equivalent : Syn
   reflexivity : Syn
   symmetry : Syn
   transitivity : Syn
   congruence : Syn
   beta : Syn
+
+_≡_ : Syn → Syn → Syn
+a ≡ b = equivalent ∙ a ∙ b
 
 --------------------------------------------------------------------------------
 -- embedding into larger context
@@ -49,7 +67,7 @@ embed (lam b) = lam (embed b)
 embed (b ∙ a) = embed b ∙ embed a
 embed (pi a b) = pi (embed a) (embed b)
 embed uni = uni
-embed (a ≡ b) = embed a ≡ embed b
+embed equivalent = equivalent
 embed reflexivity = reflexivity
 embed symmetry = symmetry
 embed transitivity = transitivity
@@ -69,7 +87,7 @@ substitute n v (lam b) = lam (substitute (n + 1) (embed v) b)
 substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (embed v) b)
 substitute n v uni = uni
-substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
+substitute n v equivalent = equivalent
 substitute n v reflexivity = reflexivity
 substitute n v symmetry = reflexivity
 substitute n v transitivity = reflexivity
@@ -120,6 +138,9 @@ data Drv : Judgment → Set where
 
   ⊢-uni : ∀ {Γ} →
     Drv (Γ ⊢ uni ⦂ uni)
+  
+  ⊢-equivalent : ∀ {Γ} →
+    Drv (Γ ⊢ equivalent ⦂ pi uni (pi uni uni))
 
   ⊢-embed : ∀ {Γ} {T U a} →
     Drv (Γ ⊢ a ⦂ T) → 
@@ -144,7 +165,7 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ beta ∙ a ∙ b ⦂ b ∙ a ≡ substitute 0 a b)
 
   -- the following are not special;
-  -- they're just non-computational terms that are.
+  -- they're just non-computational terms that need to be postulated.
 
   -- ≡-reflexivity : ∀ T (a : T) → a ≡ a
   ≡-reflexivity : Drv (
