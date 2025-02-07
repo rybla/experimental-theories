@@ -9,7 +9,6 @@ open import Data.Nat
 -- infix precendences
 --------------------------------------------------------------------------------
 
-infix 10 _⊨_
 infix 10 _⊢var_⦂_
 infix 10 _⊢_⦂_
 infixr 20 _,_
@@ -26,14 +25,11 @@ data Syn : Set where
   _∙_ : Syn → Syn → Syn
   pi : Syn → Syn → Syn
   uni : Syn
-  equal : Syn
+  _≡_ : Syn → Syn → Syn
   reflexivity : Syn
   symmetry : Syn
   transitivity : Syn
   congruence : Syn
-
-_≡_ : Syn → Syn → Syn
-a ≡ b = equal ∙ a ∙ b
 
 --------------------------------------------------------------------------------
 -- lifted into larger context
@@ -45,11 +41,11 @@ lift (lam b) = lam (lift b)
 lift (b ∙ a) = lift b ∙ lift a
 lift (pi a b) = pi (lift a) (lift b)
 lift uni = uni
-lift equal = equal
-lift reflexivity = equal
-lift symmetry = equal
-lift transitivity = equal
-lift congruence = equal
+lift (a ≡ b) = lift a ≡ lift b
+lift reflexivity = reflexivity
+lift symmetry = symmetry
+lift transitivity = transitivity
+lift congruence = congruence
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -64,11 +60,11 @@ substitute n v (lam b) = lam (substitute (n + 1) (lift v) b)
 substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (lift v) b)
 substitute n v uni = uni
-substitute n v equal = equal
-substitute n v reflexivity = equal
-substitute n v symmetry = equal
-substitute n v transitivity = equal
-substitute n v congruence = equal
+substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
+substitute n v reflexivity = reflexivity
+substitute n v symmetry = symmetry
+substitute n v transitivity = transitivity
+substitute n v congruence = congruence
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -79,27 +75,12 @@ data Ctx : Set where
   _,_ : Syn → Ctx → Ctx
 
 data Judgment : Set where
-  -- kind judgement
-  _⊨_ : Ctx → Syn → Judgment
   -- var type judgement
   _⊢var_⦂_ : Ctx → ℕ → Syn → Judgment
   -- type judgement
   _⊢_⦂_ : Ctx → Syn → Syn → Judgment
 
 data Drv : Judgment → Set where
-
-  ⊨-uni : ∀ {Γ} → 
-    Drv (Γ ⊨ uni)
-  
-  ⊨-pi-uni : ∀ {Γ T U} → 
-    Drv (Γ ⊢ U ⦂ uni) →
-    Drv (U , Γ ⊨ T) →
-    Drv (Γ ⊨ pi U T)
-  
-  ⊨-pi : ∀ {Γ T U} → 
-    Drv (Γ ⊨ U) →
-    Drv (U , Γ ⊨ T) →
-    Drv (Γ ⊨ pi U T)
 
   ⊢-var-this : ∀ {Γ} {T} → 
     Drv (T , Γ ⊢var 0 ⦂ lift T)
@@ -132,18 +113,11 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (U , Γ ⊢ lift a ⦂ lift T)
 
-  ⊢-equal :
-      -- equal : ∀ T (a b : T) → uni
-      Drv (
-        ∅ ⊢ equal ⦂ 
-          -- T : uni
-          pi uni (
-          -- a : T
-          pi (var 0) (
-          -- b : T
-          pi (var 1) 
-            uni
-          )))
+  ⊢-equal : ∀ {Γ} {T a b} →
+      Drv (Γ ⊢ T ⦂ uni) → 
+      Drv (Γ ⊢ a ⦂ T) → 
+      Drv (Γ ⊢ b ⦂ T) → 
+      Drv (Γ ⊢ a ≡ b ⦂ uni)
 
   ⊢-transport : ∀ {Γ} {T U p a} → 
     Drv (Γ ⊢ T ⦂ uni) →
