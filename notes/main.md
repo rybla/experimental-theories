@@ -32,6 +32,17 @@ This seems necessary, since otherwise how could the user actually produce equali
 
 So this solution lets equality witnesses as derivations that don't have an index term (there is no term that can be extracted from it), which is what we want, since 
 
-Problem here is that it breaks properties of equality.
+**problem! breaks properties of equality**
+
 For example, if we can quote and unquote derivations, then we can quote two derivations that are equal, then show that they are not equal since they have different syntax.
+
+So a major question here is: how do we state equality in the type theory?
+If equality is a seperate judgement at the same level as the typing judgment, then we can't leverage everything we already have for types.
+And also, what about other propositions? Do we really want to do away with proof relevance?
+
+**idea: what if you only had transport rules, and no equality rules?**
+
+Then you could use leibniz equality in your actual proofs in the base language. Hmm, how would this work?
+
+
 

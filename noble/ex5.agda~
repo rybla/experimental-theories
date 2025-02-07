@@ -139,3 +139,4 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) →
     Drv (Γ ⊢ b ⦂ T) →
     Drv (Γ ⊢ b ∙ a ≡ substitute 0 a b)
+
