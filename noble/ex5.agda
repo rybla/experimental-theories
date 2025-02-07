@@ -11,9 +11,9 @@ open import Data.Nat
 
 infix 10 _⊢var_⦂_
 infix 10 _⊢_⦂_
-infix 10 _⊢_≡_
 infixr 20 _,_
-infixl 20 _∙_
+infix 20 _≡_
+infixl 21 _∙_
 
 --------------------------------------------------------------------------------
 -- syntax
@@ -25,6 +25,11 @@ data Syn : Set where
   _∙_ : Syn → Syn → Syn
   pi : Syn → Syn → Syn
   uni : Syn
+  path : Syn
+  equal : Syn
+
+_≡_ : Syn → Syn → Syn
+a ≡ b = equal ∙ a ∙ b
 
 --------------------------------------------------------------------------------
 -- embedding into larger context
@@ -36,6 +41,8 @@ embed (lam b) = lam (embed b)
 embed (b ∙ a) = embed b ∙ embed a
 embed (pi a b) = pi (embed a) (embed b)
 embed uni = uni
+embed path = path
+embed equal = equal
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -50,6 +57,8 @@ substitute n v (lam b) = lam (substitute (n + 1) (embed v) b)
 substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (embed v) b)
 substitute n v uni = uni
+substitute n v path = path
+substitute n v equal = equal
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -62,7 +71,6 @@ data Ctx : Set where
 data Judgment : Set where
   _⊢var_⦂_ : Ctx → ℕ → Syn → Judgment
   _⊢_⦂_ : Ctx → Syn → Syn → Judgment
-  _⊢_≡_ : Ctx → Syn → Syn → Judgment
 
 data Drv : Judgment → Set where
 
@@ -97,50 +105,88 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (U , Γ ⊢ embed a ⦂ embed T)
 
-  ⊢-transport-beta : ∀ {Γ} {T U R a} →
-    Drv (Γ ⊢ T ⦂ pi U R) →
-    Drv (a ⦂ T) →
-    Drv (a ⦂ 
+  ⊢-transport : ∀ {Γ} {T U p a} → 
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ p ⦂ T ≡ U) →
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ a ⦂ U)
 
-  -- ⊢-transport : ∀ {Γ} {T U a} →
-  --   Drv (Γ ⊢ T ⦂ uni) → 
-  --   Drv (Γ ⊢ U ⦂ uni) →
-  --   Drv (Γ ⊢ T ≡ U) → 
-  --   Drv (Γ ⊢ a ⦂ T) → 
-  --   Drv (Γ ⊢ a ⦂ U)
+  -- beta is special: 
+  -- uses substitute, which can't appear in the type of a term.
+  ≡-beta : ∀ {Γ} {T a U b} →
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (T , Γ ⊢ b ⦂ U) → 
+    Drv (Γ ⊢ path ⦂ b ∙ a ≡ substitute 0 a b)
 
-  -- ≡-reflexivity : ∀ {Γ} {T a} →
-  --   Drv (Γ ⊢ T ⦂ uni) → 
-  --   Drv (Γ ⊢ a ⦂ T) →
-  --   Drv (Γ ⊢ a ≡ a)
+  -- the following are not special;
+  -- they're just non-computational terms that need to be postulated.
 
-  -- ≡-symmetry : ∀ {Γ} {T a b} →
-  --   Drv (Γ ⊢ T ⦂ uni) → 
-  --   Drv (Γ ⊢ a ⦂ T) →
-  --   Drv (Γ ⊢ b ⦂ T) →
-  --   Drv (Γ ⊢ a ≡ b) → 
-  --   Drv (Γ ⊢ b ≡ a)
+  -- ≡-reflexivity : ∀ T (a : T) → a ≡ a
+  ≡-reflexivity : Drv (
+      ∅ ⊢ path ⦂ 
+        -- pi (T : uni)
+        pi uni (
+        -- pi (a : T)
+        pi (var 0) (
+          -- a ≡ a
+          var 0 ≡ var 0
+        ))
+    )
 
-  -- ≡-transitivity : ∀ {Γ} {T a b c} → 
-  --   Drv (Γ ⊢ T ⦂ uni) → 
-  --   Drv (Γ ⊢ a ⦂ T) →
-  --   Drv (Γ ⊢ b ⦂ T) →
-  --   Drv (Γ ⊢ c ⦂ T) →
-  --   Drv (Γ ⊢ a ≡ b) → 
-  --   Drv (Γ ⊢ b ≡ c) → 
-  --   Drv (Γ ⊢ a ≡ c)
+  -- ≡-symmetry : ∀ T (a b : T) → a ≡ b → b ≡ a
+  ≡-symmetry : Drv (
+      ∅ ⊢ path ⦂ 
+        -- pi (T : uni)
+        pi uni (
+        -- pi (a : T)
+        pi (var 0) (
+        -- pi (b : T)
+        pi (var 0) (
+        -- pi (_ : a ≡ b)
+        pi (var 1 ≡ var 0) (
+          -- b ≡ a
+          var 1 ≡ var 2
+        ))))
+    )
+
   
-  -- ≡-congruence : ∀ {Γ} {T a b U c} →
-  --   Drv (Γ ⊢ T ⦂ uni) → 
-  --   Drv (Γ ⊢ a ⦂ T) →
-  --   Drv (Γ ⊢ b ⦂ T) →
-  --   Drv (Γ ⊢ c ⦂ pi T U) →
-  --   Drv (Γ ⊢ a ≡ b) → 
-  --   Drv (Γ ⊢ c ∙ a ≡ c ∙ b)
+  -- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
+  ≡-transitivity : Drv (
+      ∅ ⊢ path ⦂ 
+        -- pi (T : uni)
+        pi uni (
+        -- pi (a : T)
+        pi (var 0) (
+        -- pi (b : T)
+        pi (var 1) (
+        -- pi (c : T)
+        pi (var 2) (
+        -- pi (_ : a ≡ b)
+        pi (var 2 ≡ var 1) (
+        -- pi (_ : b ≡ c)
+        pi (var 2 ≡ var 1) (
+          -- pi (_ : a ≡ c)
+          var 4 ≡ var 2
+        ))))))
+    )
 
-  -- ≡-beta : ∀ {Γ} {T a b} →
-  --   Drv (Γ ⊢ T ⦂ uni) → 
-  --   Drv (Γ ⊢ a ⦂ T) →
-  --   Drv (Γ ⊢ b ⦂ T) →
-  --   Drv (Γ ⊢ b ∙ a ≡ substitute 0 a b)
-
+  -- ≡-congruence : ∀ T (a b : T) U (c : pi T U) → a ≡ b → c a ≡ c b
+  ≡-congruence : Drv (
+      ∅ ⊢ path ⦂ 
+        -- pi (T : uni)
+        pi  uni (
+        -- pi (a : T)
+        pi (var 0)  (
+        -- pi (b : T)
+        pi (var 1) (
+        -- pi (U : uni)
+        pi  uni (
+        -- pi (c : pi T U)
+        pi (pi (var 3) (var 1)) (
+        -- pi (_ : a ≡ b)
+        pi (var 2 ≡ var 1) (
+          -- c a ≡ c b
+          (var 1 ∙ var 4 ≡ var 1 ∙ var 3)
+        ))))))
+    )
