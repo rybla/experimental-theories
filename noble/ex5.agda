@@ -9,6 +9,7 @@ open import Data.Nat
 -- infix precendences
 --------------------------------------------------------------------------------
 
+infix 10 _⊨_
 infix 10 _⊢var_⦂_
 infix 10 _⊢_⦂_
 infixr 20 _,_
@@ -63,21 +64,35 @@ substitute n v path = path
 
 --------------------------------------------------------------------------------
 -- typing derivation
---------------------------------------------------------------------------------
+--------------------------------- -----------------------------------------------
 
 data Ctx : Set where
   ∅ : Ctx
   _,_ : Syn → Ctx → Ctx
 
 data Judgment : Set where
+  _⊨_ : Ctx → Syn → Judgment
   _⊢var_⦂_ : Ctx → ℕ → Syn → Judgment
   _⊢_⦂_ : Ctx → Syn → Syn → Judgment
 
 data Drv : Judgment → Set where
 
-  ⊢var-this : ∀ {Γ} {T} → 
+  ⊨-uni : ∀ {Γ} → 
+    Drv (Γ ⊨ uni)
+  
+  ⊨-pi-uni : ∀ {Γ T U} → 
+    Drv (Γ ⊢ U ⦂ uni) →
+    Drv (U , Γ ⊨ T) →
+    Drv (Γ ⊨ pi U T)
+  
+  ⊨-pi : ∀ {Γ T U} → 
+    Drv (Γ ⊨ U) →
+    Drv (U , Γ ⊨ T) →
+    Drv (Γ ⊨ pi U T)
+
+  ⊢-var-this : ∀ {Γ} {T} → 
     Drv (T , Γ ⊢var 0 ⦂ lift T)
-  ⊢var-that : ∀ {Γ} {n} {T U} → 
+  ⊢-var-that : ∀ {Γ} {n} {T U} → 
     Drv (Γ ⊢var n ⦂ T) → 
     Drv (U , Γ ⊢var (suc n) ⦂ lift T)
 
