@@ -83,9 +83,12 @@ data Judgment : Set where
 
 data Drv : Judgment → Set where
 
-  ⊢-var-this : ∀ {Γ} {T} → 
+  ⊢var-this : ∀ {Γ} {T} → 
+    Drv (Γ ⊢ T ⦂ uni) →
     Drv (T , Γ ⊢var 0 ⦂ lift T)
-  ⊢-var-that : ∀ {Γ} {n} {T U} → 
+
+  ⊢var-that : ∀ {Γ} {n} {T U} → 
+    Drv (Γ ⊢ U ⦂ uni) →
     Drv (Γ ⊢var n ⦂ T) → 
     Drv (U , Γ ⊢var (suc n) ⦂ lift T)
 
@@ -94,6 +97,8 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ var n ⦂ T)
 
   ⊢-lam : ∀ {Γ} {T U b} → 
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (T , Γ ⊢ U ⦂ uni) →
     Drv (T , Γ ⊢ b ⦂ U) → 
     Drv (Γ ⊢ lam b ⦂ pi T U)
 
@@ -103,17 +108,13 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ b ∙ a ⦂ substitute 0 T U)
 
   ⊢-pi : ∀ {Γ} {T U} → 
-    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ T ⦂ uni) →
     Drv (T , Γ ⊢ U ⦂ uni) → 
     Drv (Γ ⊢ pi T U ⦂ uni)
 
+  -- this is inconsistent, but its fine for this toy implementation
   ⊢-uni : ∀ {Γ} →
     Drv (Γ ⊢ uni ⦂ uni)
-
-  -- is this necessary?
-  ⊢-lift : ∀ {Γ} {T U a} →
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (U , Γ ⊢ lift a ⦂ lift T)
 
   ⊢-equal : ∀ {Γ} {T a b} →
       Drv (Γ ⊢ T ⦂ uni) → 
@@ -160,3 +161,18 @@ data Drv : Judgment → Set where
     -- TODO: its kinda weird that b lives in a different context, but whatever
     Drv (Γ ⊢ beta T a b ⦂ b ∙ a ≡ substitute 0 a b)
 
+⊢var-lift′ : ∀ {Γ} {T U n} →
+  Drv (Γ ⊢ U ⦂ uni) →
+  Drv (Γ ⊢var n ⦂ T) →
+  Drv (U , Γ ⊢var suc n ⦂ lift T)
+⊢var-lift′ {Γ = T , Γ} {T′} {U} {n} Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni) =
+  ⊢var-that Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni)
+⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = suc n} Γ⊢U⦂uni (⊢var-that Γ⊢T⦂uni Γ⊢var-n⦂T) = 
+  ⊢var-that Γ⊢U⦂uni (⊢var-lift′ Γ⊢T⦂uni Γ⊢var-n⦂T)
+
+-- TODO: this should be provable
+postulate
+  ⊢-lift′ : ∀ {Γ} {T U a} →
+    Drv (Γ ⊢ U ⦂ uni) →
+    Drv (Γ ⊢ a ⦂ T) →
+    Drv (U , Γ ⊢ lift a ⦂ lift T)
