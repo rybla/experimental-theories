@@ -1,8 +1,3 @@
-{-
-- axiomatic transport-equality rules, with no formal equality
-  - these rules should encapsulate both transport and equality derivation rules
--}
-
 open import Data.Nat
 
 --------------------------------------------------------------------------------
@@ -11,8 +6,8 @@ open import Data.Nat
 
 infix 10 _⊢var_⦂_
 infix 10 _⊢_⦂_
-infixr 20 _,_
-infix 20 _≡_
+infixr 20 _≡_
+infixr 21 _,_
 infixl 21 _∙_
 
 --------------------------------------------------------------------------------
@@ -25,11 +20,15 @@ data Syn : Set where
   _∙_ : Syn → Syn → Syn
   pi : Syn → Syn → Syn
   uni : Syn
+
+  -- equality
   _≡_ : Syn → Syn → Syn
-  reflexivity : Syn
-  symmetry : Syn
-  transitivity : Syn
-  congruence : Syn
+  -- equality axioms
+  reflexivity : Syn → Syn → Syn
+  symmetry : Syn → Syn → Syn → Syn → Syn
+  transitivity : Syn → Syn → Syn → Syn → Syn → Syn → Syn
+  congruence : Syn → Syn → Syn → Syn → Syn → Syn → Syn
+  beta : Syn → Syn → Syn → Syn
 
 --------------------------------------------------------------------------------
 -- lifted into larger context
@@ -42,10 +41,11 @@ lift (b ∙ a) = lift b ∙ lift a
 lift (pi a b) = pi (lift a) (lift b)
 lift uni = uni
 lift (a ≡ b) = lift a ≡ lift b
-lift reflexivity = reflexivity
-lift symmetry = symmetry
-lift transitivity = transitivity
-lift congruence = congruence
+lift (reflexivity T a) = reflexivity (lift T) (lift a)
+lift (symmetry T a b pab) = symmetry (lift T) (lift a) (lift b) (lift pab)
+lift (transitivity T a b c pab pbc) = transitivity (lift T) (lift a) (lift b) (lift c) (lift pab) (lift pbc)
+lift (congruence T a b U c pab) = congruence (lift T) (lift a) (lift b) (lift U) (lift c) (lift pab)
+lift (beta T a b) = beta (lift T) (lift a) (lift b)
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -61,10 +61,11 @@ substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (lift v) b)
 substitute n v uni = uni
 substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
-substitute n v reflexivity = reflexivity
-substitute n v symmetry = symmetry
-substitute n v transitivity = transitivity
-substitute n v congruence = congruence
+substitute n v (reflexivity T a) = reflexivity (substitute n v T) (substitute n v a)
+substitute n v (symmetry T a b pab) = symmetry (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v pab)
+substitute n v (transitivity T a b c pab pbc) = transitivity (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v c) (substitute n v pab) (substitute n v pbc)
+substitute n v (congruence T a b U c pab) = congruence (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v U) (substitute n v c) (substitute n v pab)
+substitute n v (beta T a b) = beta (substitute n v T) (substitute n v a) (substitute (n + 1) (lift v) b)
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -109,6 +110,7 @@ data Drv : Judgment → Set where
   ⊢-uni : ∀ {Γ} →
     Drv (Γ ⊢ uni ⦂ uni)
 
+  -- is this necessary?
   ⊢-lift : ∀ {Γ} {T U a} →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (U , Γ ⊢ lift a ⦂ lift T)
@@ -121,85 +123,40 @@ data Drv : Judgment → Set where
 
   ⊢-transport : ∀ {Γ} {T U p a} → 
     Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ U ⦂ uni) →
     Drv (Γ ⊢ p ⦂ T ≡ U) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
-  -- -- beta is special: 
-  -- -- uses substitute, which can't appear in the type of a term.
-  -- ≡-beta : ∀ {Γ} {T a U b} →
-  --   Drv (Γ ⊢ T ⦂ uni) →
-  --   Drv (Γ ⊢ a ⦂ T) → 
-  --   Drv (T , Γ ⊢ b ⦂ U) → 
-  --   Drv (Γ ⊢ path ⦂ b ∙ a ≡ substitute 0 a b)
+  ≡-reflexivity : ∀ {Γ} {T a} → 
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ reflexivity T a ⦂ a ≡ a)
 
-  -- -- the following are not special;
-  -- -- they're just non-computational terms that need to be postulated.
+  ≡-symmetry : ∀ {Γ} {T a b p} → 
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ p ⦂ a ≡ b) →
+    Drv (Γ ⊢ symmetry T a b p ⦂ b ≡ a)
 
-  -- ≡-reflexivity : ∀ T (a : T) → a ≡ a
-  ≡-reflexivity : Drv (
-      ∅ ⊢ reflexivity ⦂ 
-        -- pi (T : uni)
-        pi uni (
-        -- pi (a : T)
-        pi (var 0) (
-          -- a ≡ a
-          var 0 ≡ var 0
-        ))
-    )
+  ≡-transitivity : ∀ {Γ} {T a b c pab pbc} → 
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (Γ ⊢ pab ⦂ a ≡ b) →
+    Drv (Γ ⊢ pbc ⦂ b ≡ c) →
+    Drv (Γ ⊢ transitivity T a b c pab pbc ⦂ a ≡ b)
 
-  -- ≡-symmetry : ∀ T (a b : T) → a ≡ b → b ≡ a
-  ≡-symmetry : Drv (
-      ∅ ⊢ symmetry ⦂ 
-        -- pi (T : uni)
-        pi uni (
-        -- pi (a : T)
-        pi (var 0) (
-        -- pi (b : T)
-        pi (var 0) (
-        -- pi (_ : a ≡ b)
-        pi (var 1 ≡ var 0) (
-          -- b ≡ a
-          var 1 ≡ var 2
-        ))))
-    )
-  
-  -- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
-  ≡-transitivity : Drv (
-      ∅ ⊢ transitivity ⦂ 
-        -- pi (T : uni)
-        pi uni (
-        -- pi (a : T)
-        pi (var 0) (
-        -- pi (b : T)
-        pi (var 1) (
-        -- pi (c : T)
-        pi (var 2) (
-        -- pi (_ : a ≡ b)
-        pi (var 2 ≡ var 1) (
-        -- pi (_ : b ≡ c)
-        pi (var 2 ≡ var 1) (
-          -- pi (_ : a ≡ c)
-          var 4 ≡ var 2
-        ))))))
-    )
+  ≡-congruence : ∀ {Γ} {T a b U c pab} → 
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ a ⦂ T) →
+    Drv (Γ ⊢ b ⦂ T) →
+    Drv (Γ ⊢ U ⦂ pi T uni) →
+    Drv (Γ ⊢ c ⦂ pi T (U ∙ var 0)) →
+    Drv (Γ ⊢ pab ⦂ a ≡ b) →
+    Drv (Γ ⊢ congruence T a b U c pab ⦂ c ∙ a ≡ c ∙ b)
 
-  -- ≡-congruence : ∀ T (a b : T) U (c : pi T U) → a ≡ b → c a ≡ c b
-  ≡-congruence : Drv (
-      ∅ ⊢ congruence ⦂ 
-        -- pi (T : uni)
-        pi  uni (
-        -- pi (a : T)
-        pi (var 0)  (
-        -- pi (b : T)
-        pi (var 1) (
-        -- pi (U : uni)
-        pi  uni (
-        -- pi (c : pi T U)
-        pi (pi (var 3) (var 1)) (
-        -- pi (_ : a ≡ b)
-        pi (var 2 ≡ var 1) (
-          -- c a ≡ c b
-          (var 1 ∙ var 4 ≡ var 1 ∙ var 3)
-        ))))))
-    )
+  ≡-beta : ∀ {Γ} {T a U b} → 
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ U ⦂ pi T uni) → 
+    Drv (T , Γ ⊢ b ⦂ U ∙ var 0) →
+    -- TODO: its kinda weird that b lives in a different context, but whatever
+    Drv (Γ ⊢ beta T a b ⦂ b ∙ a ≡ substitute 0 a b)
+
