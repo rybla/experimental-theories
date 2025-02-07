@@ -27,8 +27,10 @@ data Syn : Set where
   pi : Syn → Syn → Syn
   uni : Syn
   equal : Syn
-  -- trivial term witness to equality
-  path : Syn
+  reflexivity : Syn
+  symmetry : Syn
+  transitivity : Syn
+  congruence : Syn
 
 _≡_ : Syn → Syn → Syn
 a ≡ b = equal ∙ a ∙ b
@@ -44,7 +46,10 @@ lift (b ∙ a) = lift b ∙ lift a
 lift (pi a b) = pi (lift a) (lift b)
 lift uni = uni
 lift equal = equal
-lift path = path
+lift reflexivity = equal
+lift symmetry = equal
+lift transitivity = equal
+lift congruence = equal
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -60,7 +65,10 @@ substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
 substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (lift v) b)
 substitute n v uni = uni
 substitute n v equal = equal
-substitute n v path = path
+substitute n v reflexivity = equal
+substitute n v symmetry = equal
+substitute n v transitivity = equal
+substitute n v congruence = equal
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -71,8 +79,11 @@ data Ctx : Set where
   _,_ : Syn → Ctx → Ctx
 
 data Judgment : Set where
+  -- kind judgement
   _⊨_ : Ctx → Syn → Judgment
+  -- var type judgement
   _⊢var_⦂_ : Ctx → ℕ → Syn → Judgment
+  -- type judgement
   _⊢_⦂_ : Ctx → Syn → Syn → Judgment
 
 data Drv : Judgment → Set where
@@ -121,26 +132,39 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (U , Γ ⊢ lift a ⦂ lift T)
 
+  ⊢-equal :
+      -- equal : ∀ T (a b : T) → uni
+      Drv (
+        ∅ ⊢ equal ⦂ 
+          -- T : uni
+          pi uni (
+          -- a : T
+          pi (var 0) (
+          -- b : T
+          pi (var 1) 
+            uni
+          )))
+
   ⊢-transport : ∀ {Γ} {T U p a} → 
     Drv (Γ ⊢ T ⦂ uni) →
     Drv (Γ ⊢ p ⦂ T ≡ U) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
-  -- beta is special: 
-  -- uses substitute, which can't appear in the type of a term.
-  ≡-beta : ∀ {Γ} {T a U b} →
-    Drv (Γ ⊢ T ⦂ uni) →
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (T , Γ ⊢ b ⦂ U) → 
-    Drv (Γ ⊢ path ⦂ b ∙ a ≡ substitute 0 a b)
+  -- -- beta is special: 
+  -- -- uses substitute, which can't appear in the type of a term.
+  -- ≡-beta : ∀ {Γ} {T a U b} →
+  --   Drv (Γ ⊢ T ⦂ uni) →
+  --   Drv (Γ ⊢ a ⦂ T) → 
+  --   Drv (T , Γ ⊢ b ⦂ U) → 
+  --   Drv (Γ ⊢ path ⦂ b ∙ a ≡ substitute 0 a b)
 
-  -- the following are not special;
-  -- they're just non-computational terms that need to be postulated.
+  -- -- the following are not special;
+  -- -- they're just non-computational terms that need to be postulated.
 
   -- ≡-reflexivity : ∀ T (a : T) → a ≡ a
   ≡-reflexivity : Drv (
-      ∅ ⊢ path ⦂ 
+      ∅ ⊢ reflexivity ⦂ 
         -- pi (T : uni)
         pi uni (
         -- pi (a : T)
@@ -152,7 +176,7 @@ data Drv : Judgment → Set where
 
   -- ≡-symmetry : ∀ T (a b : T) → a ≡ b → b ≡ a
   ≡-symmetry : Drv (
-      ∅ ⊢ path ⦂ 
+      ∅ ⊢ symmetry ⦂ 
         -- pi (T : uni)
         pi uni (
         -- pi (a : T)
@@ -168,7 +192,7 @@ data Drv : Judgment → Set where
   
   -- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
   ≡-transitivity : Drv (
-      ∅ ⊢ path ⦂ 
+      ∅ ⊢ transitivity ⦂ 
         -- pi (T : uni)
         pi uni (
         -- pi (a : T)
@@ -188,7 +212,7 @@ data Drv : Judgment → Set where
 
   -- ≡-congruence : ∀ T (a b : T) U (c : pi T U) → a ≡ b → c a ≡ c b
   ≡-congruence : Drv (
-      ∅ ⊢ path ⦂ 
+      ∅ ⊢ congruence ⦂ 
         -- pi (T : uni)
         pi  uni (
         -- pi (a : T)
