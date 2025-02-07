@@ -25,24 +25,25 @@ data Syn : Set where
   _∙_ : Syn → Syn → Syn
   pi : Syn → Syn → Syn
   uni : Syn
-  path : Syn
   equal : Syn
+  -- trivial term witness to equality
+  path : Syn
 
 _≡_ : Syn → Syn → Syn
 a ≡ b = equal ∙ a ∙ b
 
 --------------------------------------------------------------------------------
--- embedding into larger context
+-- lifted into larger context
 --------------------------------------------------------------------------------
 
-embed : Syn → Syn
-embed (var x) = var (x + 1)
-embed (lam b) = lam (embed b)
-embed (b ∙ a) = embed b ∙ embed a
-embed (pi a b) = pi (embed a) (embed b)
-embed uni = uni
-embed path = path
-embed equal = equal
+lift : Syn → Syn
+lift (var x) = var (x + 1)
+lift (lam b) = lam (lift b)
+lift (b ∙ a) = lift b ∙ lift a
+lift (pi a b) = pi (lift a) (lift b)
+lift uni = uni
+lift equal = equal
+lift path = path
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -53,12 +54,12 @@ substitute x v (var y) with compare x y
 substitute x v (var y) | less .x k {- y = suc (x + k) -} = var (x + k)
 substitute x v (var y) | equal .x = v
 substitute x v (var y) | greater .y k = var y
-substitute n v (lam b) = lam (substitute (n + 1) (embed v) b)
+substitute n v (lam b) = lam (substitute (n + 1) (lift v) b)
 substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
-substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (embed v) b)
+substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (lift v) b)
 substitute n v uni = uni
-substitute n v path = path
 substitute n v equal = equal
+substitute n v path = path
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -75,10 +76,10 @@ data Judgment : Set where
 data Drv : Judgment → Set where
 
   ⊢var-this : ∀ {Γ} {T} → 
-    Drv (T , Γ ⊢var 0 ⦂ embed T)
+    Drv (T , Γ ⊢var 0 ⦂ lift T)
   ⊢var-that : ∀ {Γ} {n} {T U} → 
     Drv (Γ ⊢var n ⦂ T) → 
-    Drv (U , Γ ⊢var (suc n) ⦂ embed T)
+    Drv (U , Γ ⊢var (suc n) ⦂ lift T)
 
   ⊢-var : ∀ {Γ} {n} {T} → 
     Drv (Γ ⊢var n ⦂ T) → 
@@ -101,9 +102,9 @@ data Drv : Judgment → Set where
   ⊢-uni : ∀ {Γ} →
     Drv (Γ ⊢ uni ⦂ uni)
 
-  ⊢-embed : ∀ {Γ} {T U a} →
+  ⊢-lift : ∀ {Γ} {T U a} →
     Drv (Γ ⊢ a ⦂ T) → 
-    Drv (U , Γ ⊢ embed a ⦂ embed T)
+    Drv (U , Γ ⊢ lift a ⦂ lift T)
 
   ⊢-transport : ∀ {Γ} {T U p a} → 
     Drv (Γ ⊢ T ⦂ uni) →
@@ -149,7 +150,6 @@ data Drv : Judgment → Set where
           var 1 ≡ var 2
         ))))
     )
-
   
   -- ≡-transitivity : ∀ T (a b c : T) → a ≡ b → b ≡ c → a ≡ c
   ≡-transitivity : Drv (
