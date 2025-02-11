@@ -162,7 +162,6 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (T , Γ ⊢ U ⦂ uni) → 
     Drv (T , Γ ⊢ b ⦂ U) →
-    -- TODO: its kinda weird that b lives in a different context, but whatever
     Drv (Γ ⊢ beta T a b ⦂ (lam b) ∙ a ≡ substitute 0 a b)
 
 -- -- TODO: this should be provable
