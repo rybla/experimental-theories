@@ -4,6 +4,9 @@ Idea: transport + congruence typing derivation rules are enough
 
 open import Data.Nat
 
+𝒰 : ℕ
+𝒰 = 1
+
 -- infix precendences
 
 infix 10 _⊢var_⦂_
