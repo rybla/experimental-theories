@@ -35,7 +35,7 @@ data Syn : Set where
 --------------------------------------------------------------------------------
 
 lift : Syn → Syn
-lift (var x) = var (x + 1)
+lift (var x) = var (suc x)
 lift (lam b) = lam (lift b)
 lift (b ∙ a) = lift b ∙ lift a
 lift (pi a b) = pi (lift a) (lift b)
@@ -56,16 +56,16 @@ substitute x v (var y) with compare x y
 substitute x v (var y) | less .x k {- y = suc (x + k) -} = var (x + k)
 substitute x v (var y) | equal .x = v
 substitute x v (var y) | greater .y k = var y
-substitute n v (lam b) = lam (substitute (n + 1) (lift v) b)
+substitute n v (lam b) = lam (substitute (suc n) (lift v) b)
 substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
-substitute n v (pi a b) = pi (substitute n v a) (substitute (n + 1) (lift v) b)
+substitute n v (pi a b) = pi (substitute n v a) (substitute (suc n) (lift v) b)
 substitute n v uni = uni
 substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
 substitute n v (reflexivity T a) = reflexivity (substitute n v T) (substitute n v a)
 substitute n v (symmetry T a b pab) = symmetry (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v pab)
 substitute n v (transitivity T a b c pab pbc) = transitivity (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v c) (substitute n v pab) (substitute n v pbc)
 substitute n v (congruence T a b U c pab) = congruence (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v U) (substitute n v c) (substitute n v pab)
-substitute n v (beta T a b) = beta (substitute n v T) (substitute n v a) (substitute (n + 1) (lift v) b)
+substitute n v (beta T a b) = beta (substitute n v T) (substitute n v a) (substitute (suc n) (lift v) b)
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -89,10 +89,12 @@ data Drv : Judgment → Set where
 
   ⊢var-that : ∀ {Γ} {n} {T U} → 
     Drv (Γ ⊢ U ⦂ uni) →
+    Drv (Γ ⊢ T ⦂ uni) →
     Drv (Γ ⊢var n ⦂ T) → 
     Drv (U , Γ ⊢var (suc n) ⦂ lift T)
 
-  ⊢-var : ∀ {Γ} {n} {T} → 
+  ⊢-var : ∀ {Γ} {n} {T} →
+    Drv (Γ ⊢ T ⦂ uni) → 
     Drv (Γ ⊢var n ⦂ T) → 
     Drv (Γ ⊢ var n ⦂ T)
 
@@ -103,6 +105,8 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ lam b ⦂ pi T U)
 
   ⊢-∙ : ∀ {Γ} {T U b a} → 
+    Drv (Γ ⊢ T ⦂ uni) →
+    Drv (T , Γ ⊢ U ⦂ uni) →
     Drv (Γ ⊢ b ⦂ pi T U) → 
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ b ∙ a ⦂ substitute 0 T U)
@@ -153,26 +157,43 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ pab ⦂ a ≡ b) →
     Drv (Γ ⊢ congruence T a b U c pab ⦂ c ∙ a ≡ c ∙ b)
 
-  ≡-beta : ∀ {Γ} {T a U b} → 
+  ≡-beta : ∀ {Γ} {T a U b} →  
     Drv (Γ ⊢ T ⦂ uni) → 
     Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ U ⦂ pi T uni) → 
-    Drv (T , Γ ⊢ b ⦂ U ∙ var 0) →
+    Drv (T , Γ ⊢ U ⦂ uni) → 
+    Drv (T , Γ ⊢ b ⦂ U) →
     -- TODO: its kinda weird that b lives in a different context, but whatever
-    Drv (Γ ⊢ beta T a b ⦂ b ∙ a ≡ substitute 0 a b)
+    Drv (Γ ⊢ beta T a b ⦂ (lam b) ∙ a ≡ substitute 0 a b)
 
-⊢var-lift′ : ∀ {Γ} {T U n} →
-  Drv (Γ ⊢ U ⦂ uni) →
-  Drv (Γ ⊢var n ⦂ T) →
-  Drv (U , Γ ⊢var suc n ⦂ lift T)
-⊢var-lift′ {Γ = T , Γ} {T′} {U} {n} Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni) =
-  ⊢var-that Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni)
-⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = suc n} Γ⊢U⦂uni (⊢var-that Γ⊢T⦂uni Γ⊢var-n⦂T) = 
-  ⊢var-that Γ⊢U⦂uni (⊢var-lift′ Γ⊢T⦂uni Γ⊢var-n⦂T)
+-- ⊢var-lift′ : ∀ {Γ} {T U n} →
+--   Drv (Γ ⊢ U ⦂ uni) →
+--   Drv (Γ ⊢var n ⦂ T) →
+--   Drv (U , Γ ⊢var suc n ⦂ lift T)
+-- ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n} Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni) =
+--   ⊢var-that Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni)
+-- ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = suc n} Γ⊢U⦂uni (⊢var-that Γ⊢T⦂uni Γ⊢var-n⦂T) = 
+--   ⊢var-that Γ⊢U⦂uni (⊢var-lift′ Γ⊢T⦂uni Γ⊢var-n⦂T)
 
--- TODO: this should be provable
-postulate
-  ⊢-lift′ : ∀ {Γ} {T U a} →
-    Drv (Γ ⊢ U ⦂ uni) →
-    Drv (Γ ⊢ a ⦂ T) →
-    Drv (U , Γ ⊢ lift a ⦂ lift T)
+-- -- TODO: this should be provable
+-- postulate
+--   ⊢-lift′ : ∀ {Γ} {T U a} →
+--     Drv (Γ ⊢ U ⦂ uni) →
+--     Drv (Γ ⊢ a ⦂ T) →
+--     Drv (U , Γ ⊢ lift a ⦂ lift T)
+
+-- ⊢-lift′ : ∀ {Γ} {T U a} →
+--   Drv (Γ ⊢ U ⦂ uni) →
+--   Drv (Γ ⊢ a ⦂ T) →
+--   Drv (U , Γ ⊢ lift a ⦂ lift T)
+-- ⊢-lift′ {Γ} {T} {U} {a = var n} ⊢U (⊢-var ⊢a) = ⊢-var (⊢var-lift′ ⊢U ⊢a)
+-- ⊢-lift′ {Γ} {T = pi V W} {U} {a = lam b} dU (⊢-lam ⊢V ⊢W ⊢b) = ⊢-lam {!   !} {!   !} {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-∙ da da₁) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-pi da da₁) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU ⊢-uni = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-equal da da₁ da₂) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-transport da da₁ da₂ da₃) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-reflexivity da) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-symmetry da da₁) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-transitivity da da₁ da₂) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-congruence da da₁ da₂ da₃ da₄ da₅) = {!   !}
+-- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-beta da da₁ da₂ da₃) = {!   !}
