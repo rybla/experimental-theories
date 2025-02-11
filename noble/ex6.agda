@@ -1,4 +1,5 @@
-open import Data.Nat
+open import Data.Nat using (ℕ)
+import Data.Nat as ℕ
 
 --------------------------------------------------------------------------------
 -- infix precendences
@@ -22,6 +23,10 @@ data Syn : Set where
   pi : Syn → Syn → Syn
   uni : Syn
 
+  -- data types
+  _+_ : Syn → Syn → Syn
+  _×_ : Syn → Syn → Syn
+
   -- equality
   _≡_ : Syn → Syn → Syn
   -- equality axioms
@@ -36,11 +41,13 @@ data Syn : Set where
 --------------------------------------------------------------------------------
 
 lift : Syn → Syn
-lift (var x) = var (suc x)
+lift (var x) = var (ℕ.suc x)
 lift (lam b) = lam (lift b)
 lift (b ∙ a) = lift b ∙ lift a
 lift (pi a b) = pi (lift a) (lift b)
 lift uni = uni
+lift (a + b) = lift a + lift b
+lift (a × b) = lift a × lift b
 lift (a ≡ b) = lift a ≡ lift b
 lift (reflexivity T a) = reflexivity (lift T) (lift a)
 lift (symmetry T a b pab) = symmetry (lift T) (lift a) (lift b) (lift pab)
@@ -53,20 +60,22 @@ lift (beta T a b) = beta (lift T) (lift a) (lift b)
 --------------------------------------------------------------------------------
 
 substitute : ℕ → Syn → Syn → Syn
-substitute x v (var y) with compare x y
-substitute x v (var y) | less .x k {- y = suc (x + k) -} = var (x + k)
-substitute x v (var y) | equal .x = v
-substitute x v (var y) | greater .y k = var y
-substitute n v (lam b) = lam (substitute (suc n) (lift v) b)
+substitute x v (var y) with ℕ.compare x y
+substitute x v (var y) | ℕ.less .x k {- y = suc (x + k) -} = var (x ℕ.+ k)
+substitute x v (var y) | ℕ.equal .x = v
+substitute x v (var y) | ℕ.greater .y k = var y
+substitute n v (lam b) = lam (substitute (ℕ.suc n) (lift v) b)
 substitute n v (b ∙ a) = substitute n v b ∙ substitute n v a
-substitute n v (pi a b) = pi (substitute n v a) (substitute (suc n) (lift v) b)
+substitute n v (pi a b) = pi (substitute n v a) (substitute (ℕ.ℕ.suc n) (lift v) b)
 substitute n v uni = uni
+substitute n v (a + b) = substitute n v a + substitute n v b
+substitute n v (a × b) = substitute n v a × substitute n v b
 substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
 substitute n v (reflexivity T a) = reflexivity (substitute n v T) (substitute n v a)
 substitute n v (symmetry T a b pab) = symmetry (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v pab)
 substitute n v (transitivity T a b c pab pbc) = transitivity (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v c) (substitute n v pab) (substitute n v pbc)
 substitute n v (congruence T a b U c pab) = congruence (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v U) (substitute n v c) (substitute n v pab)
-substitute n v (beta T a b) = beta (substitute n v T) (substitute n v a) (substitute (suc n) (lift v) b)
+substitute n v (beta T a b) = beta (substitute n v T) (substitute n v a) (substitute (ℕ.suc n) (lift v) b)
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -92,7 +101,7 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ U ⦂ uni) →
     Drv (Γ ⊢ T ⦂ uni) →
     Drv (Γ ⊢var n ⦂ T) → 
-    Drv (U , Γ ⊢var (suc n) ⦂ lift T)
+    Drv (U , Γ ⊢var (ℕ.suc n) ⦂ lift T)
 
   ⊢-var : ∀ {Γ} {n} {T} →
     Drv (Γ ⊢ T ⦂ uni) → 
@@ -169,10 +178,10 @@ mutual
   ⊢var-lift′ : ∀ {Γ} {T U n} →
     Drv (Γ ⊢ U ⦂ uni) →
     Drv (Γ ⊢var n ⦂ T) →
-    Drv (U , Γ ⊢var suc n ⦂ lift T)
+    Drv (U , Γ ⊢var ℕ.suc n ⦂ lift T)
   ⊢var-lift′ {Γ = T , Γ} {T′} {U} {0} ⊢U (⊢var-this ⊢T) =
     ⊢var-that ⊢U (⊢-lift′ ⊢T ⊢T) (⊢var-this ⊢T)
-  ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = suc n} ⊢U (⊢var-that ⊢T ⊢T′ ⊢[var-n]) = 
+  ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = ℕ.suc n} ⊢U (⊢var-that ⊢T ⊢T′ ⊢[var-n]) = 
     ⊢var-that ⊢U (⊢-lift′ ⊢T ⊢T′) (⊢var-lift′ ⊢T ⊢[var-n])
 
   postulate

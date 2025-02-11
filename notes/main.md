@@ -44,5 +44,12 @@ And also, what about other propositions? Do we really want to do away with proof
 
 Then you could use leibniz equality in your actual proofs in the base language. Hmm, how would this work?
 
+## ex5
 
+The basic starting point for a language with extensional type theory.
+Nothing for datatypes or metaprogramming.
+
+## ex6
+
+Extending [ex5](#ex5) with simple data types as sums of products.
 
