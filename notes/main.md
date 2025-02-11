@@ -51,5 +51,4 @@ Nothing for datatypes or metaprogramming.
 
 ## ex6
 
-Extending [ex5](#ex5) with simple data types as sums of products.
-
+Extending [ex5](#ex5) with simple data types as sums, products, and fixpoints.

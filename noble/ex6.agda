@@ -5,11 +5,9 @@ import Data.Nat as ℕ
 -- infix precendences
 --------------------------------------------------------------------------------
 
-infix 10 _⊢var_⦂_
-infix 10 _⊢_⦂_
+infix 10 _⊢var_⦂_ _⊢_⦂_
 infixr 20 _≡_
-infixr 21 _,_
-infixl 21 _∙_
+infixr 21 _,_ _∙_ _+_ _×_
 
 --------------------------------------------------------------------------------
 -- syntax
@@ -26,6 +24,7 @@ data Syn : Set where
   -- data types
   _+_ : Syn → Syn → Syn
   _×_ : Syn → Syn → Syn
+  mu : Syn → Syn
 
   -- equality
   _≡_ : Syn → Syn → Syn
@@ -48,6 +47,7 @@ lift (pi a b) = pi (lift a) (lift b)
 lift uni = uni
 lift (a + b) = lift a + lift b
 lift (a × b) = lift a × lift b
+lift (mu b) = mu (lift b)
 lift (a ≡ b) = lift a ≡ lift b
 lift (reflexivity T a) = reflexivity (lift T) (lift a)
 lift (symmetry T a b pab) = symmetry (lift T) (lift a) (lift b) (lift pab)
@@ -70,6 +70,7 @@ substitute n v (pi a b) = pi (substitute n v a) (substitute (ℕ.ℕ.suc n) (lif
 substitute n v uni = uni
 substitute n v (a + b) = substitute n v a + substitute n v b
 substitute n v (a × b) = substitute n v a × substitute n v b
+substitute n v (mu b) = mu (substitute n v b)
 substitute n v (a ≡ b) = substitute n v a ≡ substitute n v b
 substitute n v (reflexivity T a) = reflexivity (substitute n v T) (substitute n v a)
 substitute n v (symmetry T a b pab) = symmetry (substitute n v T) (substitute n v a) (substitute n v b) (substitute n v pab)
@@ -129,6 +130,16 @@ data Drv : Judgment → Set where
   -- this is inconsistent, but its fine for this toy implementation
   ⊢-uni : ∀ {Γ} →
     Drv (Γ ⊢ uni ⦂ uni)
+
+  ⊢-+ : ∀ {Γ} {T U} → 
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ U ⦂ uni) → 
+    Drv (Γ ⊢ T + U ⦂ uni)
+
+  ⊢-× : ∀ {Γ} {T U} → 
+    Drv (Γ ⊢ T ⦂ uni) → 
+    Drv (Γ ⊢ U ⦂ uni) → 
+    Drv (Γ ⊢ T × U ⦂ uni)
 
   ⊢-equal : ∀ {Γ} {T a b} →
       Drv (Γ ⊢ T ⦂ uni) → 
@@ -192,4 +203,3 @@ mutual
     -- ⊢-lift′ {Γ} {T} {U} {a = var n} ⊢U (⊢-var ⊢T ⊢a) = ⊢-var (⊢-lift′ ⊢U ⊢T) (⊢var-lift′ ⊢U ⊢a)
     -- ⊢-lift′ {Γ} {T = pi V W} {U} {a} ⊢U (⊢-lam ⊢V ⊢W ⊢b) = ⊢-lam (⊢-lift′ ⊢U ⊢V) (⊢-lift′ (⊢-lift′ ⊢U ⊢V) {! ⊢W  !}) {!   !}
     -- ⊢-lift′ {Γ} {T} {U} {a} ⊢U ⊢a = {!   !}
-    
