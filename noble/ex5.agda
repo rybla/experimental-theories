@@ -164,13 +164,6 @@ data Drv : Judgment → Set where
     Drv (T , Γ ⊢ b ⦂ U) →
     Drv (Γ ⊢ beta T a b ⦂ (lam b) ∙ a ≡ substitute 0 a b)
 
--- -- TODO: this should be provable
--- postulate
---   ⊢-lift′ : ∀ {Γ} {T U a} →
---     Drv (Γ ⊢ U ⦂ uni) →
---     Drv (Γ ⊢ a ⦂ T) →
---     Drv (U , Γ ⊢ lift a ⦂ lift T)
-
 mutual
   ⊢var-lift′ : ∀ {Γ} {T U n} →
     Drv (Γ ⊢ U ⦂ uni) →
