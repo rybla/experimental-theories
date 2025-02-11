@@ -165,15 +165,6 @@ data Drv : Judgment → Set where
     -- TODO: its kinda weird that b lives in a different context, but whatever
     Drv (Γ ⊢ beta T a b ⦂ (lam b) ∙ a ≡ substitute 0 a b)
 
--- ⊢var-lift′ : ∀ {Γ} {T U n} →
---   Drv (Γ ⊢ U ⦂ uni) →
---   Drv (Γ ⊢var n ⦂ T) →
---   Drv (U , Γ ⊢var suc n ⦂ lift T)
--- ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n} Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni) =
---   ⊢var-that Γ⊢U⦂uni (⊢var-this Γ⊢T⦂uni)
--- ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = suc n} Γ⊢U⦂uni (⊢var-that Γ⊢T⦂uni Γ⊢var-n⦂T) = 
---   ⊢var-that Γ⊢U⦂uni (⊢var-lift′ Γ⊢T⦂uni Γ⊢var-n⦂T)
-
 -- -- TODO: this should be provable
 -- postulate
 --   ⊢-lift′ : ∀ {Γ} {T U a} →
@@ -181,19 +172,22 @@ data Drv : Judgment → Set where
 --     Drv (Γ ⊢ a ⦂ T) →
 --     Drv (U , Γ ⊢ lift a ⦂ lift T)
 
--- ⊢-lift′ : ∀ {Γ} {T U a} →
---   Drv (Γ ⊢ U ⦂ uni) →
---   Drv (Γ ⊢ a ⦂ T) →
---   Drv (U , Γ ⊢ lift a ⦂ lift T)
--- ⊢-lift′ {Γ} {T} {U} {a = var n} ⊢U (⊢-var ⊢a) = ⊢-var (⊢var-lift′ ⊢U ⊢a)
--- ⊢-lift′ {Γ} {T = pi V W} {U} {a = lam b} dU (⊢-lam ⊢V ⊢W ⊢b) = ⊢-lam {!   !} {!   !} {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-∙ da da₁) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-pi da da₁) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU ⊢-uni = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-equal da da₁ da₂) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (⊢-transport da da₁ da₂ da₃) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-reflexivity da) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-symmetry da da₁) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-transitivity da da₁ da₂) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-congruence da da₁ da₂ da₃ da₄ da₅) = {!   !}
--- ⊢-lift′ {Γ} {T} {U} {a} dU (≡-beta da da₁ da₂ da₃) = {!   !}
+mutual
+  ⊢var-lift′ : ∀ {Γ} {T U n} →
+    Drv (Γ ⊢ U ⦂ uni) →
+    Drv (Γ ⊢var n ⦂ T) →
+    Drv (U , Γ ⊢var suc n ⦂ lift T)
+  ⊢var-lift′ {Γ = T , Γ} {T′} {U} {0} ⊢U (⊢var-this ⊢T) =
+    ⊢var-that ⊢U (⊢-lift′ ⊢T ⊢T) (⊢var-this ⊢T)
+  ⊢var-lift′ {Γ = T , Γ} {T′} {U} {n = suc n} ⊢U (⊢var-that ⊢T ⊢T′ ⊢[var-n]) = 
+    ⊢var-that ⊢U (⊢-lift′ ⊢T ⊢T′) (⊢var-lift′ ⊢T ⊢[var-n])
+
+  postulate
+    ⊢-lift′ : ∀ {Γ} {T U a} →
+      Drv (Γ ⊢ U ⦂ uni) →
+      Drv (Γ ⊢ a ⦂ T) →
+      Drv (U , Γ ⊢ lift a ⦂ lift T)
+    -- ⊢-lift′ {Γ} {T} {U} {a = var n} ⊢U (⊢-var ⊢T ⊢a) = ⊢-var (⊢-lift′ ⊢U ⊢T) (⊢var-lift′ ⊢U ⊢a)
+    -- ⊢-lift′ {Γ} {T = pi V W} {U} {a} ⊢U (⊢-lam ⊢V ⊢W ⊢b) = ⊢-lam (⊢-lift′ ⊢U ⊢V) (⊢-lift′ (⊢-lift′ ⊢U ⊢V) {! ⊢W  !}) {!   !}
+    -- ⊢-lift′ {Γ} {T} {U} {a} ⊢U ⊢a = {!   !}
+    
