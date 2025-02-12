@@ -8,7 +8,8 @@ import Data.Nat as ℕ
 
 infix 10 _⊢♯_⦂_ _⊢_⦂_
 infixr 20 _`≡_
-infixr 21 _◂_ _`∙_ _`+_ _`×_ _`,_
+-- infixr 21 _◂_ _`∙_ _`+_ _`×_ _`,_
+infixr 21 _◂_ _`∙_
 
 --------------------------------------------------------------------------------
 -- syntax
@@ -105,7 +106,7 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ `λ b ⦂ `Π T U)
 
   ⊢∙ : ∀ {Γ} {T U b a} → 
-    Drv (Γ ⊢ b ⦂ `Π T (U `∙ (`♯ 0))) → 
+    Drv (Γ ⊢ b ⦂ `Π T (U `∙ (`♯ 0))) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ b `∙ a ⦂ U `∙ a)
 
@@ -144,6 +145,16 @@ data Drv : Judgment → Set where
   ⊢beta : ∀ {Γ} {a b} →  
     Drv (Γ ⊢ `beta a b ⦂ `λ b `∙ a `≡ subst 0 a b)
 
+postulate
+  ⊢lift : ∀ {Γ} {U T a} →
+    Drv (Γ ⊢ U ⦂ `𝒰) →
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (U ◂ Γ ⊢ lift a ⦂ lift T)
+
+  ⊢unlift : ∀ {Γ} {U T a} →
+    Drv (U ◂ Γ ⊢ lift a ⦂ lift T) →
+    Drv (Γ ⊢ a ⦂ T)
+
 --------------------------------------------------------------------------------
 -- prelude
 --------------------------------------------------------------------------------
@@ -154,3 +165,128 @@ data Drv : Judgment → Set where
 -- examples
 --------------------------------------------------------------------------------
 
+
+module macro-stuff where
+  -- TODO: is normalisation actually necessary in the places that i commented it out?
+  -- or is that only needed in special circumstances
+  -- im not sure how unify applies metavar substsitutions... perhaps in-place??
+
+  open import Reflection
+  open import Data.Unit using (⊤; tt)
+  open import Data.Bool using (Bool; true; false)
+  open import Data.List using (List; []; _∷_; [_])
+  open import Data.Product using (_×_; _,_)
+
+  arg′ : ∀ {a} {A : Set a} → A → Arg A
+  arg′ = arg (arg-info visible (modality relevant quantity-ω))
+
+  ------------------------------------------------------------------------------
+
+  extract-ℕ : Term → TC ℕ
+  extract-ℕ (lit (nat n)) = pure n -- TODO: does this make sense?
+  extract-ℕ t = typeError (termErr t ∷ strErr " is not a literal natural number" ∷ [])
+    
+  ------------------------------------------------------------------------------
+
+  extract-⊢ : Term → TC (Term × Term × Term)
+  extract-⊢ (def (quote Drv) (arg _ (con (quote _⊢_⦂_) (arg _ Γ ∷ arg _ n ∷ arg _ T ∷ [])) ∷ [])) = pure (Γ , n , T)
+  extract-⊢ t = typeError (termErr t ∷ strErr " is not of the form Drv (Γ ⊢ a ⦂ T)" ∷ [])
+
+  extract-⊢♯ : Term → TC (Term × Term × Term)
+  extract-⊢♯ (def (quote Drv) (arg _ (con (quote _⊢♯_⦂_) (arg _ Γ ∷ arg _ n ∷ arg _ T ∷ [])) ∷ [])) = pure (Γ , n , T)
+  extract-⊢♯ t = typeError (termErr t ∷ strErr " is not of the form Drv (Γ ⊢♯ n ⦂ T)" ∷ [])
+
+  -- extract-◂ : Term → TC (Term × Term)
+  -- extract-◂ (con (quote (_◂_)) (arg _ T ∷ arg _ Γ ∷ [])) = pure (T , Γ)
+  -- extract-◂ t = typeError (termErr t ∷ strErr " is not of the form T ◂ Γ" ∷ [])
+
+  $⊢♯-helper : ℕ → TC Term
+  $⊢♯-helper ℕ.zero = pure (con (quote ⊢♯this) [])
+  $⊢♯-helper (ℕ.suc n) = do
+    drv ← $⊢♯-helper n
+    pure (con (quote ⊢♯that) [ arg′ drv ])
+
+  macro
+    $⊢♯ : Term → TC ⊤
+    $⊢♯ hole = withNormalisation true do
+      goal ← inferType hole
+      -- goal ← normalise goal
+      Γ , n , T ← extract-⊢♯ goal
+      -- n ← normalise n
+      n ← extract-ℕ n
+      drv ← $⊢♯-helper n
+      unify hole drv
+
+  $⊢-helper : Term → Term → Term → TC Term
+  $⊢-helper Γ (con (quote `♯) (arg _ n ∷ [])) T = do
+    n ← normalise n
+    n ← extract-ℕ n
+    drv ← $⊢♯-helper n
+    pure (con (quote ⊢♯) (arg′ drv ∷ []))
+  $⊢-helper Γ a T = typeError (strErr "failed to synthesize typing derivation for " ∷ termErr (con (quote _⊢_⦂_) (arg′ Γ ∷ arg′ a ∷ arg′ T ∷ [])) ∷ [])
+
+  macro
+    $⊢ : Term → TC ⊤
+    $⊢ hole = withNormalisation true do
+      goal ← inferType hole
+      -- goal ← normalise goal
+      Γ , a , T ← extract-⊢ goal
+      -- a ← normalise a
+      drv ← $⊢-helper Γ a T
+      unify hole drv
+
+  ex-♯0 : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 0 ⦂ _)
+  ex-♯0 = $⊢
+
+  ex-♯1 : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 1 ⦂ _)
+  ex-♯1 = $⊢
+
+  ex-♯2 : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 2 ⦂ _)
+  ex-♯2 = $⊢
+
+-- macro
+--   $⊢♯ : Term → TC ⊤
+--   -- tactic-lookup hole = bindTC getContext λ γ → typeError (termErr hole ∷ [])
+--   -- $⊢♯ hole = bindTC getContext λ γ → typeError (strErr "this is a problem" ∷ [])
+--   $⊢♯ hole = do
+--     goal ← inferType hole
+--     R.returnTC tt
+    
+--       -- bindTC (inferType hole) λ goal → 
+--       -- unify goal {! unknown  !}
+--       -- bindTC
+--       --   (unify hole
+--       --     -- (con (quote Drv)
+--       --     --   ( arg′ (con (quote _⊢♯_⦂_) 
+--       --     --       -- ( arg′ ?
+--       --     --       -- ∷ arg′ ?
+--       --     --       -- ∷ arg′ ?
+--       --     --       -- [] )
+--       --     --       ( arg′ (meta {!   !} {!   !}) 
+--       --     --       ∷ [] )
+--       --     --     )
+--       --     --   ∷ [] )
+--       --     -- )
+--       --     (quote (? ⊢♯ ? ⦂ ?))
+--       --   )
+--       -- {!   !}
+--     where 
+--     open import Reflection
+--     open import Data.List
+--     open import Data.String
+
+-- -- TODO: why does this require a recursive call? isn't that kinda weird?
+-- {-# TERMINATING #-}
+-- drv0 : ∀ {Γ} {T a} →
+--   Drv (Γ ⊢ T ⦂ `𝒰) →
+--   Drv (Γ ⊢ a ⦂ T) →
+--   Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
+-- drv0 {Γ} {T} {a} ⊢T ⊢a =
+--   ⊢transport {T = `λ `𝒰 `∙ a} ⊢beta
+--     (⊢∙ 
+--       -- (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) (⊢♯ ⊢♯this)) 
+--       (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) tactic-lookup) 
+--         (⊢transport {T = `𝒰} (⊢symmetry ⊢beta)
+--           ⊢𝒰))
+--       ⊢a)
+ 
