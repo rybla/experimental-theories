@@ -52,3 +52,10 @@ Nothing for datatypes or metaprogramming.
 ## ex6
 
 Extending [ex5](#ex5) with simple data types as sums, products, and fixpoints.
+
+PROBLEM: too many typing derivations required everywhere, which might make it actually impossible to write some things (see `ex0` and `ex1`)
+
+## ex7
+
+Modifying [ex6](#ex6) to require less child derivations in the derivation rules.
+Let's see if that helps with its issues.
