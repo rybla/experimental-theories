@@ -59,3 +59,4 @@ PROBLEM: too many typing derivations required everywhere, which might make it ac
 
 Modifying [ex6](#ex6) to require less child derivations in the derivation rules.
 Let's see if that helps with its issues.
+

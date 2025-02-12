@@ -15,27 +15,15 @@ infixr 21 _◂_ _`∙_ _`+_ _`×_ _`,_
 --------------------------------------------------------------------------------
 
 data Syn : Set where
-  -- usual terms
+  -- basic
   `♯ : ℕ → Syn
   `λ : Syn → Syn
   _`∙_ : Syn → Syn → Syn
   `Π : Syn → Syn → Syn
   `𝒰 : Syn
 
-  -- data types
-  `𝟘 : Syn
-  `𝟙 : Syn
-  `unit : Syn
-  `𝟚 : Syn
-  `true : Syn 
-  `false : Syn
-  `Σ : Syn → Syn → Syn
-  _`,_ : Syn → Syn → Syn
-  `μ : Syn → Syn
-
   -- equality
   _`≡_ : Syn → Syn → Syn
-  -- equality axioms
   `reflexivity : Syn → Syn → Syn
   `symmetry : Syn → Syn → Syn → Syn → Syn
   `transitivity : Syn → Syn → Syn → Syn → Syn → Syn → Syn
@@ -51,9 +39,6 @@ lift (`♯ x) = `♯ (ℕ.suc x)
 lift (`λ b) = `λ (lift b)
 lift (b `∙ a) = lift b `∙ lift a
 lift (`Π a b) = `Π (lift a) (lift b)
-lift (`Σ a b) = `Σ (lift a) (lift b)
-lift (a `, b) = lift a `, lift b
-lift (`μ b) = `μ (lift b)
 lift (a `≡ b) = lift a `≡ lift b
 lift (`reflexivity T a) = `reflexivity (lift T) (lift a)
 lift (`symmetry T a b pab) = `symmetry (lift T) (lift a) (lift b) (lift pab)
@@ -74,9 +59,6 @@ subst x v (`♯ y) | ℕ.greater .y k = `♯ y
 subst n v (`λ b) = `λ (subst (ℕ.suc n) (lift v) b)
 subst n v (b `∙ a) = subst n v b `∙ subst n v a
 subst n v (`Π a b) = `Π (subst n v a) (subst (ℕ.suc n) (lift v) b)
-subst n v (`Σ a b) = `Σ (subst n v a) (subst n v b)
-subst n v (a `, b) = subst n v a `, subst n v b
-subst n v (`μ b) = `μ (subst n v b)
 subst n v (a `≡ b) = subst n v a `≡ subst n v b
 subst n v (`reflexivity T a) = `reflexivity (subst n v T) (subst n v a)
 subst n v (`symmetry T a b pab) = `symmetry (subst n v T) (subst n v a) (subst n v b) (subst n v pab)
@@ -137,42 +119,6 @@ data Drv : Judgment → Set where
   -- this is inconsistent, but its fine for this toy implementation
   ⊢𝒰 : ∀ {Γ} →
     Drv (Γ ⊢ `𝒰 ⦂ `𝒰)
-
-  -- datatype stuff
-
-  ⊢𝟘 : ∀ {Γ} → 
-    Drv (Γ ⊢ `𝟘 ⦂ `𝒰)
-  
-  ⊢𝟙 : ∀ {Γ} → 
-    Drv (Γ ⊢ `𝟙 ⦂ `𝒰)
-  
-  ⊢unit : ∀ {Γ} → 
-    Drv (Γ ⊢ `unit ⦂ `𝟙)
-
-  ⊢𝟚 : ∀ {Γ} → 
-    Drv (Γ ⊢ `𝟚 ⦂ `𝒰)
-  
-  ⊢true : ∀ {Γ} → 
-    Drv (Γ ⊢ `true ⦂ `𝟚)
-  
-  ⊢false : ∀ {Γ} → 
-    Drv (Γ ⊢ `false ⦂ `𝟚)
-  
-  ⊢Σ : ∀ {Γ} {T U} → 
-    Drv (Γ ⊢ T ⦂ `𝒰) → 
-    Drv (Γ ⊢ U ⦂ `Π T `𝒰) → 
-    Drv (Γ ⊢ `Σ T U ⦂ `𝒰)
-
-  ⊢, : ∀ {Γ} {T U a b} → 
-    Drv (Γ ⊢ T ⦂ `𝒰) → 
-    Drv (Γ ⊢ `Π T U ⦂ `𝒰) → 
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ `Π T b ⦂ U) → 
-    Drv (Γ ⊢ a `, b ⦂ `Σ T U)
-
-  ⊢μ : ∀ {Γ} {T} → 
-    Drv (Γ ⊢ T ⦂ `Π `𝒰 `𝒰) →
-    Drv (Γ ⊢ `μ T ⦂ `𝒰)
 
   -- equality stuff
 
