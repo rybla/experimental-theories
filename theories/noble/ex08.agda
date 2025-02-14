@@ -26,11 +26,7 @@ data Syn : Set where
 
   -- identity
   _`≡_ : Syn → Syn → Syn
-  `refl : Syn → Syn
-  `sym : Syn → Syn → Syn → Syn
-  `trans : Syn → Syn → Syn → Syn → Syn → Syn
-  `cong : Syn → Syn → Syn → Syn → Syn
-  `β : Syn → Syn → Syn
+  `refl : Syn
 
 --------------------------------------------------------------------------------
 -- ⊢lifted into larger context
@@ -41,13 +37,9 @@ lift (`♯ x) = `♯ (ℕ.suc x)
 lift (`λ b) = `λ (lift b)
 lift (b `∙ a) = lift b `∙ lift a
 lift (`Π a b) = `Π (lift a) (lift b)
+lift `𝒰 = `𝒰
 lift (a `≡ b) = lift a `≡ lift b
-lift (`refl a) = `refl (lift a)
-lift (`sym a b pab) = `sym (lift a) (lift b) (lift pab)
-lift (`trans a b c pab pbc) = `trans (lift a) (lift b) (lift c) (lift pab) (lift pbc)
-lift (`cong a b c pab) = `cong (lift a) (lift b) (lift c) (lift pab)
-lift (`β a b) = `β (lift a) (lift b)
-lift a = a
+lift `refl = `refl
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -62,12 +54,8 @@ subst n v (`λ b) = `λ (subst (ℕ.suc n) (lift v) b)
 subst n v (b `∙ a) = subst n v b `∙ subst n v a
 subst n v (`Π a b) = `Π (subst n v a) (subst (ℕ.suc n) (lift v) b)
 subst n v (a `≡ b) = subst n v a `≡ subst n v b
-subst n v (`refl a) = `refl (subst n v a)
-subst n v (`sym a b pab) = `sym (subst n v a) (subst n v b) (subst n v pab)
-subst n v (`trans a b c pab pbc) = `trans (subst n v a) (subst n v b) (subst n v c) (subst n v pab) (subst n v pbc)
-subst n v (`cong a b c pab) = `cong (subst n v a) (subst n v b) (subst n v c) (subst n v pab)
-subst n v (`β a b) = `β (subst n v a) (subst (ℕ.suc n) (lift v) b)
-subst _ _ a = a
+subst n v `𝒰 = `𝒰
+subst n v `refl = `refl
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -117,34 +105,32 @@ data Drv : Judgment → Set where
 
   -- identity stuff
 
-  ⊢≡ : ∀ {Γ} {T a b} →
-      Drv (Γ ⊢ a ⦂ T) → 
-      Drv (Γ ⊢ b ⦂ T) → 
-      Drv (Γ ⊢ a `≡ b ⦂ `𝒰)
+  ⊢≡ : ∀ {Γ} {a b} →
+    Drv (Γ ⊢ a `≡ b ⦂ `𝒰)
 
-  ⊢transport : ∀ {Γ} {T U p a} → 
+  ⊢transport : ∀ {Γ} T {U p a} → 
     Drv (Γ ⊢ p ⦂ T `≡ U) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
   ⊢refl : ∀ {Γ} {a} → 
-    Drv (Γ ⊢ `refl a ⦂ a `≡ a)
+    Drv (Γ ⊢ `refl ⦂ a `≡ a)
 
   ⊢sym : ∀ {Γ} {a b p} → 
     Drv (Γ ⊢ p ⦂ a `≡ b) →
-    Drv (Γ ⊢ `sym a b p ⦂ b `≡ a)
+    Drv (Γ ⊢ p ⦂ b `≡ a)
 
   ⊢trans : ∀ {Γ} {a b c pab pbc} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ pbc ⦂ b `≡ c) →
-    Drv (Γ ⊢ `trans a b c pab pbc ⦂ a `≡ b)
+    Drv (Γ ⊢ pab ⦂ a `≡ b)
 
-  ⊢cong : ∀ {Γ} {a b c pab} → 
+  ⊢cong : ∀ {Γ} {a b} c {pab} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
-    Drv (Γ ⊢ `cong a b c pab ⦂ subst 0 a c `≡ subst 0 b c)
+    Drv (Γ ⊢ `refl ⦂ subst 0 a c `≡ subst 0 b c)
 
   ⊢β : ∀ {Γ} {a b} →  
-    Drv (Γ ⊢ `β a b ⦂ `λ b `∙ a `≡ subst 0 a b)
+    Drv (Γ ⊢ `refl ⦂ `λ b `∙ a `≡ subst 0 a b)
 
 postulate
   ⊢lift : ∀ {Γ} {U T a} →
@@ -217,6 +203,13 @@ module tactics where
       drv ← $⊢♯-helper n
       unify hole drv
 
+    $⊢♯′ : ℕ → Term → TC ⊤
+    $⊢♯′ n hole = withNormalisation true do
+      goal ← inferType hole
+      Γ , _ , T ← extract-⊢♯ goal
+      drv ← $⊢♯-helper n
+      unify hole drv
+
   $⊢-helper : Term → Term → Term → TC Term
   $⊢-helper Γ (con (quote `♯) (arg _ n ∷ [])) T = do
     n ← normalise n
@@ -252,7 +245,7 @@ module tactics where
   ex-♯2 : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 2 ⦂ _)
   ex-♯2 = $⊢
 
-open tactics using ($⊢; $⊢♯)
+open tactics using ($⊢; $⊢′; $⊢♯; $⊢♯′)
 
 drv0 : ∀ {Γ} {T a} →
   Drv (Γ ⊢ T ⦂ `𝒰) →
@@ -263,20 +256,25 @@ drv0 {Γ} {T} {a} ⊢T ⊢a =
 
 -- proof that all proofs of identity are identical
 
--- ≡-prop : ∀ {Γ} → 
---   Drv (
---     Γ ⊢
---     `λ {- A -} (`λ {- x -} (`λ {- y -} (`λ {- p -} (`refl (`♯ 0 `≡ `refl (`♯ 2)))))) ⦂ 
---     `Π {- A -} `𝒰 (`Π {- x -} (`♯ 0) (`Π {- y -} (`♯ 1) (`Π {- p -} (`♯ 1 `≡ `♯ 0) (`♯ 0 `≡ `refl (`♯ 2)))))
---   )
--- ≡-prop = 
---   ⊢λ {!   !} {!   !}
---     (⊢λ {!   !} {!   !}
---       (⊢λ {!   !} {!   !}
---         (⊢λ {- p : `♯ 1 `≡ `♯ 0 -} {!   !} {!   !} 
---           -- Drv ((`♯ 1 `≡ `♯ 0) ◂ `♯ 1 ◂ `♯ 0 ◂ `𝒰 ◂ Γ ⊢ `refl (`♯ 0 `≡ `refl (`♯ 2)) ⦂ `♯ 0 `≡ `refl (`♯ 2))
---           (⊢transport
---             -- Drv ((`♯ 1 `≡ `♯ 0) ◂ `♯ 1 ◂ `♯ 0 ◂ `𝒰 ◂ Γ ⊢ _p_486 ⦂ 
---             --   ((`♯ 0 `≡ `refl (`♯ 2)) `≡ (`♯ 0 `≡ `refl (`♯ 2))) `≡ (`♯ 0 `≡ `refl (`♯ 2)))
---             {!   !}
---             ⊢refl))))
+≡-prop : ∀ {Γ} → 
+  Drv (
+    Γ ⊢
+    `λ {- A -} (`λ {- x -} (`λ {- y -} (`λ {- p -} `refl))) ⦂ 
+    `Π {- A -} `𝒰 (`Π {- x -} (`♯ 0) (`Π {- y -} (`♯ 1) (`Π {- p -} (`♯ 1 `≡ `♯ 0) (`♯ 0 `≡ `refl))))
+  )
+≡-prop = 
+  ⊢λ {!   !} {!   !}
+    (⊢λ {!   !} {!   !}
+      (⊢λ {!   !} {!   !}
+        (⊢λ {- p : `♯ 1 `≡ `♯ 0 -} ⊢≡ ⊢≡
+          -- GOAL: Drv ((`♯ 1 `≡ `♯ 0) ◂ `♯ 1 ◂ `♯ 0 ◂ `𝒰 ◂ Γ ⊢ `refl ⦂ `♯ 0 `≡ `refl) 
+          (⊢transport _
+            (⊢cong ({!   !} `≡ {!   !}) {!   !})
+            ⊢refl)
+        )
+      )
+    )
+            -- (⊢≡ $⊢ 
+            --   (⊢transport {!   !}
+            --     (⊢cong (`♯ {!   !} `≡ `♯ 0) (⊢♯ ($⊢♯′ 0)))
+            --     (⊢refl ?)))))))
