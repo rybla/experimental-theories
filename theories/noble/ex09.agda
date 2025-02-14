@@ -115,18 +115,18 @@ data Drv : Judgment → Set where
 
   ⊢sym : ∀ {Γ} {a b p} → 
     Drv (Γ ⊢ p ⦂ a `≡ b) →
-    Drv (Γ ⊢ p ⦂ b `≡ a)
+    Drv (Γ ⊢ `refl ⦂ b `≡ a)
 
   ⊢trans : ∀ {Γ} {a b c pab pbc} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ pbc ⦂ b `≡ c) →
-    Drv (Γ ⊢ pab ⦂ a `≡ b)
+    Drv (Γ ⊢ `refl ⦂ a `≡ b)
 
   ⊢cong : ∀ {Γ} {a b} c {pab} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ `refl ⦂ subst 0 a c `≡ subst 0 b c)
 
-  -- identity is a typal equality
+  -- identity can be transported
 
   ⊢transport : ∀ {Γ} T {U p a} → 
     Drv (Γ ⊢ p ⦂ T `≡ U) →
@@ -137,6 +137,12 @@ data Drv : Judgment → Set where
 
   ⊢β : ∀ {Γ} {a b} →  
     Drv (Γ ⊢ `refl ⦂ `λ b `∙ a `≡ subst 0 a b)
+
+  -- uniqueness of identity proofs
+
+  ⊢≡refl : ∀ {Γ} {p a b} →
+    Drv (Γ ⊢ p ⦂ a `≡ b) →
+    Drv (Γ ⊢ `refl ⦂ p `≡ `refl)
 
 postulate
   ⊢lift : ∀ {Γ} {U T a} →
