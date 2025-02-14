@@ -165,8 +165,7 @@ postulate
 -- examples
 --------------------------------------------------------------------------------
 
-
-module macro-stuff where
+module tactics where
   -- TODO: is normalisation actually necessary in the places that i commented it out?
   -- or is that only needed in special circumstances
   -- im not sure how unify applies metavar substsitutions... perhaps in-place??
@@ -244,49 +243,18 @@ module macro-stuff where
   ex-♯2 : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 2 ⦂ _)
   ex-♯2 = $⊢
 
--- macro
---   $⊢♯ : Term → TC ⊤
---   -- tactic-lookup hole = bindTC getContext λ γ → typeError (termErr hole ∷ [])
---   -- $⊢♯ hole = bindTC getContext λ γ → typeError (strErr "this is a problem" ∷ [])
---   $⊢♯ hole = do
---     goal ← inferType hole
---     R.returnTC tt
-    
---       -- bindTC (inferType hole) λ goal → 
---       -- unify goal {! unknown  !}
---       -- bindTC
---       --   (unify hole
---       --     -- (con (quote Drv)
---       --     --   ( arg′ (con (quote _⊢♯_⦂_) 
---       --     --       -- ( arg′ ?
---       --     --       -- ∷ arg′ ?
---       --     --       -- ∷ arg′ ?
---       --     --       -- [] )
---       --     --       ( arg′ (meta {!   !} {!   !}) 
---       --     --       ∷ [] )
---       --     --     )
---       --     --   ∷ [] )
---       --     -- )
---       --     (quote (? ⊢♯ ? ⦂ ?))
---       --   )
---       -- {!   !}
---     where 
---     open import Reflection
---     open import Data.List
---     open import Data.String
+open tactics using ($⊢; $⊢♯)
 
--- -- TODO: why does this require a recursive call? isn't that kinda weird?
--- {-# TERMINATING #-}
--- drv0 : ∀ {Γ} {T a} →
---   Drv (Γ ⊢ T ⦂ `𝒰) →
---   Drv (Γ ⊢ a ⦂ T) →
---   Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
--- drv0 {Γ} {T} {a} ⊢T ⊢a =
---   ⊢transport {T = `λ `𝒰 `∙ a} ⊢beta
---     (⊢∙ 
---       -- (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) (⊢♯ ⊢♯this)) 
---       (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) tactic-lookup) 
---         (⊢transport {T = `𝒰} (⊢symmetry ⊢beta)
---           ⊢𝒰))
---       ⊢a)
- 
+-- TODO: why does this require a recursive call? isn't that kinda weird?
+{-# TERMINATING #-}
+drv0 : ∀ {Γ} {T a} →
+  Drv (Γ ⊢ T ⦂ `𝒰) →
+  Drv (Γ ⊢ a ⦂ T) →
+  Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
+drv0 {Γ} {T} {a} ⊢T ⊢a =
+  ⊢transport {T = `λ `𝒰 `∙ a} ⊢beta
+    (⊢∙
+      (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) $⊢) 
+        (⊢transport {T = `𝒰} (⊢symmetry ⊢beta)
+          ⊢𝒰))
+      ⊢a)
