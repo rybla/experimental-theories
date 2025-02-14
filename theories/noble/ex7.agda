@@ -245,6 +245,7 @@ module tactics where
 
 open tactics using ($⊢; $⊢♯)
 
+-- TODO: this doesn't help...
 -- {-# TERMINATING #-}
 -- drv0-lemma0 : ∀ {Γ} {T} →
 --   Drv (Γ ⊢ T ⦂ `𝒰) →
