@@ -73,10 +73,10 @@ data Judgment : Set where
 
 data Drv : Judgment → Set where
 
-  ⊢♯this : ∀ {Γ} {T} → 
+  ⊢♯zero : ∀ {Γ} {T} → 
     Drv (T ◂ Γ ⊢♯ 0 ⦂ lift T)
 
-  ⊢♯that : ∀ {Γ} {n} {T U} → 
+  ⊢♯suc : ∀ {Γ} {n} {T U} → 
     Drv (Γ ⊢♯ n ⦂ T) → 
     Drv (U ◂ Γ ⊢♯ (ℕ.suc n) ⦂ lift T)
 
@@ -99,7 +99,7 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ b `∙ a ⦂ subst 0 a U)
 
-  -- this is inconsistent, but its fine for this toy implementation
+  -- zero is inconsistent, but its fine for zero toy implementation
   ⊢𝒰 : ∀ {Γ} →
     Drv (Γ ⊢ `𝒰 ⦂ `𝒰)
 
@@ -153,9 +153,6 @@ postulate
 --------------------------------------------------------------------------------
 
 module tactics where
-  -- TODO: is normalisation actually necessary in the places that i commented it out?
-  -- or is that only needed in special circumstances
-  -- im not sure how unify applies metavar substsitutions... perhaps in-place??
 
   open import Reflection
   open import Data.Unit using (⊤; tt)
@@ -187,10 +184,10 @@ module tactics where
   extract-◂ t = typeError (termErr t ∷ strErr " is not of the form T ◂ Γ" ∷ [])
 
   $⊢♯-helper : ℕ → TC Term
-  $⊢♯-helper ℕ.zero = pure (con (quote ⊢♯this) [])
+  $⊢♯-helper ℕ.zero = pure (con (quote ⊢♯zero) [])
   $⊢♯-helper (ℕ.suc n) = do
     drv ← $⊢♯-helper n
-    pure (con (quote ⊢♯that) [ arg′ drv ])
+    pure (con (quote ⊢♯suc) [ arg′ drv ])
 
   macro
     $⊢♯ : Term → TC ⊤
@@ -241,8 +238,8 @@ module tactics where
   ex-♯2 : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 2 ⦂ _)
   ex-♯2 = $⊢⦂
 
-  ex-♯2′ : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 2 ⦂ _)
-  ex-♯2′ = $⊢[ `♯ 2 ]⦂
+  ex-♯2′ : ∀ {Γ} {T0 T1 T2 T3} → Drv (T0 ◂ T1 ◂ T2 ◂ T3 ◂ Γ ⊢ `♯ 3 ⦂ _)
+  ex-♯2′ = $⊢[ `♯ 3 ]⦂
 
 open tactics using ($⊢⦂; $⊢[_]⦂; $⊢♯; $⊢♯[_])
 
