@@ -62,3 +62,9 @@ PROBLEM: too many typing derivations required everywhere, which might make it ac
 Modifying [ex6](#ex6) to require less child derivations in the derivation rules.
 Let's see if that helps with its issues.
 
+## ex8
+
+Modifying [ex7](#ex7) to do `subst` in `⊢∙` rule. This makes it possible to write `drv0`!
+But this seems kind of suspicious because I figured that the only place that you should have to use `subst` is exclusively in the `⊢β` rule.
+So, what gives? Is this ok?? I'm not sure.
+I don't want to collapse the `⊢∙` and `⊢β` Rules because that's kind of the whole point of having Extension equality That requires the `⊢β` rule.

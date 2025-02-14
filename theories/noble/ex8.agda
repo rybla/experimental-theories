@@ -30,7 +30,7 @@ data Syn : Set where
   `symmetry : Syn → Syn → Syn → Syn
   `transitivity : Syn → Syn → Syn → Syn → Syn → Syn
   `congruence : Syn → Syn → Syn → Syn → Syn → Syn
-  `beta : Syn → Syn → Syn
+  `β : Syn → Syn → Syn
 
 --------------------------------------------------------------------------------
 -- ⊢lifted into larger context
@@ -46,7 +46,7 @@ lift (`reflexivity a) = `reflexivity (lift a)
 lift (`symmetry a b pab) = `symmetry (lift a) (lift b) (lift pab)
 lift (`transitivity a b c pab pbc) = `transitivity (lift a) (lift b) (lift c) (lift pab) (lift pbc)
 lift (`congruence a b U c pab) = `congruence (lift a) (lift b) (lift U) (lift c) (lift pab)
-lift (`beta a b) = `beta (lift a) (lift b)
+lift (`β a b) = `β (lift a) (lift b)
 lift a = a
 
 --------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ subst n v (`reflexivity a) = `reflexivity (subst n v a)
 subst n v (`symmetry a b pab) = `symmetry (subst n v a) (subst n v b) (subst n v pab)
 subst n v (`transitivity a b c pab pbc) = `transitivity (subst n v a) (subst n v b) (subst n v c) (subst n v pab) (subst n v pbc)
 subst n v (`congruence a b U c pab) = `congruence (subst n v a) (subst n v b) (subst n v U) (subst n v c) (subst n v pab)
-subst n v (`beta a b) = `beta (subst n v a) (subst (ℕ.suc n) (lift v) b)
+subst n v (`β a b) = `β (subst n v a) (subst (ℕ.suc n) (lift v) b)
 subst _ _ a = a
 
 --------------------------------------------------------------------------------
@@ -143,8 +143,8 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ `congruence a b U c pab ⦂ c `∙ a `≡ c `∙ b)
 
-  ⊢beta : ∀ {Γ} {a b} →  
-    Drv (Γ ⊢ `beta a b ⦂ `λ b `∙ a `≡ subst 0 a b)
+  ⊢β : ∀ {Γ} {a b} →  
+    Drv (Γ ⊢ `β a b ⦂ `λ b `∙ a `≡ subst 0 a b)
 
 postulate
   ⊢lift : ∀ {Γ} {U T a} →
@@ -259,11 +259,11 @@ open tactics using ($⊢; $⊢♯)
 --   Drv (Γ ⊢ T ⦂ `𝒰) →
 --   Drv (T ◂ Γ ⊢ `λ `𝒰 `∙ `♯ 0 ⦂ `𝒰)
 -- drv0-lemma0 {Γ} {T} ⊢T =
---     ⊢transport ⊢beta
+--     ⊢transport ⊢β
 --       (⊢∙ 
 --         -- (⊢λ (⊢lift ⊢T ⊢T) (drv0-lemma0 (⊢lift ⊢T ⊢T))
 --         (⊢λ (⊢lift ⊢T ⊢T) {!   !}
---           (⊢transport (⊢symmetry ⊢beta) ⊢𝒰))
+--           (⊢transport (⊢symmetry ⊢β) ⊢𝒰))
 --       $⊢)
 
 -- -- TODO: why does this require a recursive call? isn't that kinda weird?
@@ -273,10 +273,10 @@ open tactics using ($⊢; $⊢♯)
 --   Drv (Γ ⊢ a ⦂ T) →
 --   Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
 -- drv0 {Γ} {T} {a} ⊢T ⊢a =
---   ⊢transport {T = `λ `𝒰 `∙ a} ⊢beta
+--   ⊢transport {T = `λ `𝒰 `∙ a} ⊢β
 --     (⊢∙
 --       (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) $⊢) 
---         (⊢transport {T = `𝒰} (⊢symmetry ⊢beta)
+--         (⊢transport {T = `𝒰} (⊢symmetry ⊢β)
 --           ⊢𝒰))
 --       ⊢a)
 
