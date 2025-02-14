@@ -7,7 +7,7 @@ import Data.Nat as ℕ
 --------------------------------------------------------------------------------
 
 infix 10 _⊢♯_⦂_ _⊢_⦂_
-infixr 20 _`≡_
+infix 20 _`≡_
 -- infixr 21 _◂_ _`∙_ _`+_ _`×_ _`,_
 infixr 21 _◂_
 infixl 21 _`∙_
@@ -24,12 +24,12 @@ data Syn : Set where
   `Π : Syn → Syn → Syn
   `𝒰 : Syn
 
-  -- equality
+  -- identity
   _`≡_ : Syn → Syn → Syn
-  `reflexivity : Syn → Syn
-  `symmetry : Syn → Syn → Syn → Syn
-  `transitivity : Syn → Syn → Syn → Syn → Syn → Syn
-  `congruence : Syn → Syn → Syn → Syn → Syn → Syn
+  `refl : Syn → Syn
+  `sym : Syn → Syn → Syn → Syn
+  `trans : Syn → Syn → Syn → Syn → Syn → Syn
+  `cong : Syn → Syn → Syn → Syn → Syn
   `β : Syn → Syn → Syn
 
 --------------------------------------------------------------------------------
@@ -42,10 +42,10 @@ lift (`λ b) = `λ (lift b)
 lift (b `∙ a) = lift b `∙ lift a
 lift (`Π a b) = `Π (lift a) (lift b)
 lift (a `≡ b) = lift a `≡ lift b
-lift (`reflexivity a) = `reflexivity (lift a)
-lift (`symmetry a b pab) = `symmetry (lift a) (lift b) (lift pab)
-lift (`transitivity a b c pab pbc) = `transitivity (lift a) (lift b) (lift c) (lift pab) (lift pbc)
-lift (`congruence a b U c pab) = `congruence (lift a) (lift b) (lift U) (lift c) (lift pab)
+lift (`refl a) = `refl (lift a)
+lift (`sym a b pab) = `sym (lift a) (lift b) (lift pab)
+lift (`trans a b c pab pbc) = `trans (lift a) (lift b) (lift c) (lift pab) (lift pbc)
+lift (`cong a b c pab) = `cong (lift a) (lift b) (lift c) (lift pab)
 lift (`β a b) = `β (lift a) (lift b)
 lift a = a
 
@@ -62,10 +62,10 @@ subst n v (`λ b) = `λ (subst (ℕ.suc n) (lift v) b)
 subst n v (b `∙ a) = subst n v b `∙ subst n v a
 subst n v (`Π a b) = `Π (subst n v a) (subst (ℕ.suc n) (lift v) b)
 subst n v (a `≡ b) = subst n v a `≡ subst n v b
-subst n v (`reflexivity a) = `reflexivity (subst n v a)
-subst n v (`symmetry a b pab) = `symmetry (subst n v a) (subst n v b) (subst n v pab)
-subst n v (`transitivity a b c pab pbc) = `transitivity (subst n v a) (subst n v b) (subst n v c) (subst n v pab) (subst n v pbc)
-subst n v (`congruence a b U c pab) = `congruence (subst n v a) (subst n v b) (subst n v U) (subst n v c) (subst n v pab)
+subst n v (`refl a) = `refl (subst n v a)
+subst n v (`sym a b pab) = `sym (subst n v a) (subst n v b) (subst n v pab)
+subst n v (`trans a b c pab pbc) = `trans (subst n v a) (subst n v b) (subst n v c) (subst n v pab) (subst n v pbc)
+subst n v (`cong a b c pab) = `cong (subst n v a) (subst n v b) (subst n v c) (subst n v pab)
 subst n v (`β a b) = `β (subst n v a) (subst (ℕ.suc n) (lift v) b)
 subst _ _ a = a
 
@@ -115,7 +115,7 @@ data Drv : Judgment → Set where
   ⊢𝒰 : ∀ {Γ} →
     Drv (Γ ⊢ `𝒰 ⦂ `𝒰)
 
-  -- equality stuff
+  -- identity stuff
 
   ⊢≡ : ∀ {Γ} {T a b} →
       Drv (Γ ⊢ a ⦂ T) → 
@@ -127,21 +127,21 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
-  ⊢reflexivity : ∀ {Γ} {a} → 
-    Drv (Γ ⊢ `reflexivity a ⦂ a `≡ a)
+  ⊢refl : ∀ {Γ} {a} → 
+    Drv (Γ ⊢ `refl a ⦂ a `≡ a)
 
-  ⊢symmetry : ∀ {Γ} {a b p} → 
+  ⊢sym : ∀ {Γ} {a b p} → 
     Drv (Γ ⊢ p ⦂ a `≡ b) →
-    Drv (Γ ⊢ `symmetry a b p ⦂ b `≡ a)
+    Drv (Γ ⊢ `sym a b p ⦂ b `≡ a)
 
-  ⊢transitivity : ∀ {Γ} {a b c pab pbc} → 
+  ⊢trans : ∀ {Γ} {a b c pab pbc} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ pbc ⦂ b `≡ c) →
-    Drv (Γ ⊢ `transitivity a b c pab pbc ⦂ a `≡ b)
+    Drv (Γ ⊢ `trans a b c pab pbc ⦂ a `≡ b)
 
-  ⊢congruence : ∀ {Γ} {a b U c pab} → 
+  ⊢cong : ∀ {Γ} {a b c pab} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
-    Drv (Γ ⊢ `congruence a b U c pab ⦂ c `∙ a `≡ c `∙ b)
+    Drv (Γ ⊢ `cong a b c pab ⦂ subst 0 a c `≡ subst 0 b c)
 
   ⊢β : ∀ {Γ} {a b} →  
     Drv (Γ ⊢ `β a b ⦂ `λ b `∙ a `≡ subst 0 a b)
@@ -254,35 +254,29 @@ module tactics where
 
 open tactics using ($⊢; $⊢♯)
 
--- {-# TERMINATING #-}
--- drv0-lemma0 : ∀ {Γ} {T} →
---   Drv (Γ ⊢ T ⦂ `𝒰) →
---   Drv (T ◂ Γ ⊢ `λ `𝒰 `∙ `♯ 0 ⦂ `𝒰)
--- drv0-lemma0 {Γ} {T} ⊢T =
---     ⊢transport ⊢β
---       (⊢∙ 
---         -- (⊢λ (⊢lift ⊢T ⊢T) (drv0-lemma0 (⊢lift ⊢T ⊢T))
---         (⊢λ (⊢lift ⊢T ⊢T) {!   !}
---           (⊢transport (⊢symmetry ⊢β) ⊢𝒰))
---       $⊢)
-
--- -- TODO: why does this require a recursive call? isn't that kinda weird?
--- {-# TERMINATING #-}
--- drv0 : ∀ {Γ} {T a} →
---   Drv (Γ ⊢ T ⦂ `𝒰) →
---   Drv (Γ ⊢ a ⦂ T) →
---   Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
--- drv0 {Γ} {T} {a} ⊢T ⊢a =
---   ⊢transport {T = `λ `𝒰 `∙ a} ⊢β
---     (⊢∙
---       (⊢λ ⊢T (drv0 (⊢lift ⊢T ⊢T) $⊢) 
---         (⊢transport {T = `𝒰} (⊢symmetry ⊢β)
---           ⊢𝒰))
---       ⊢a)
-
 drv0 : ∀ {Γ} {T a} →
   Drv (Γ ⊢ T ⦂ `𝒰) →
   Drv (Γ ⊢ a ⦂ T) →
   Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
 drv0 {Γ} {T} {a} ⊢T ⊢a =
   ⊢∙ (⊢λ ⊢T ⊢𝒰 ⊢𝒰) ⊢a
+
+-- proof that all proofs of identity are identical
+
+-- ≡-prop : ∀ {Γ} → 
+--   Drv (
+--     Γ ⊢
+--     `λ {- A -} (`λ {- x -} (`λ {- y -} (`λ {- p -} (`refl (`♯ 0 `≡ `refl (`♯ 2)))))) ⦂ 
+--     `Π {- A -} `𝒰 (`Π {- x -} (`♯ 0) (`Π {- y -} (`♯ 1) (`Π {- p -} (`♯ 1 `≡ `♯ 0) (`♯ 0 `≡ `refl (`♯ 2)))))
+--   )
+-- ≡-prop = 
+--   ⊢λ {!   !} {!   !}
+--     (⊢λ {!   !} {!   !}
+--       (⊢λ {!   !} {!   !}
+--         (⊢λ {- p : `♯ 1 `≡ `♯ 0 -} {!   !} {!   !} 
+--           -- Drv ((`♯ 1 `≡ `♯ 0) ◂ `♯ 1 ◂ `♯ 0 ◂ `𝒰 ◂ Γ ⊢ `refl (`♯ 0 `≡ `refl (`♯ 2)) ⦂ `♯ 0 `≡ `refl (`♯ 2))
+--           (⊢transport
+--             -- Drv ((`♯ 1 `≡ `♯ 0) ◂ `♯ 1 ◂ `♯ 0 ◂ `𝒰 ◂ Γ ⊢ _p_486 ⦂ 
+--             --   ((`♯ 0 `≡ `refl (`♯ 2)) `≡ (`♯ 0 `≡ `refl (`♯ 2))) `≡ (`♯ 0 `≡ `refl (`♯ 2)))
+--             {!   !}
+--             ⊢refl))))

@@ -70,3 +70,17 @@ Modifying [ex7](#ex7) to do `subst` in `⊢∙` rule. This makes it possible to 
 But this seems kind of suspicious because I figured that the only place that you should have to use `subst` is exclusively in the `⊢β` rule.
 So, what gives? Is this ok?? I'm not sure.
 I don't want to collapse the `⊢∙` and `⊢β` Rules because that's kind of the whole point of having Extension equality That requires the `⊢β` rule.
+
+## ex8.1
+
+Modifying [ex8](#ex8) to try to make equality types [mere propositions](https://ncatlab.org/nlab/show/mere+proposition) i.e. all proofs of equality are equal to reflexivity, but without `symmetry`, `transitivity`, and `congruence` given as axioms.
+
+I think this is possible because you can derive the induction rule for the equality type from just this axiom:
+
+```
+  p : Id x y
+-------------
+  x = y
+```
+
+**RESULT**: Turns out this is not quite what i want to do. I don't want to divide out the equalities just to combine them back together again with this rule. I want to just build the identity type in the language to turn out to be the same as judgmental equality.
