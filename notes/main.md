@@ -1,6 +1,8 @@
 # Experimental Theories
 
-## Noble Theories
+## Unipi Theories `theories/unipi`
+
+## Noble Theories `theories/noble`
 
 These are [intensional theories](https://ncatlab.org/nlab/show/intensional+type+theory), where there is only one kind of equality, which combines what is usually separated into judgmental and definitional equalities.
 

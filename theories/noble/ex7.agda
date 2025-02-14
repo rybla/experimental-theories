@@ -245,6 +245,18 @@ module tactics where
 
 open tactics using ($⊢; $⊢♯)
 
+-- {-# TERMINATING #-}
+-- drv0-lemma0 : ∀ {Γ} {T} →
+--   Drv (Γ ⊢ T ⦂ `𝒰) →
+--   Drv (T ◂ Γ ⊢ `λ `𝒰 `∙ `♯ 0 ⦂ `𝒰)
+-- drv0-lemma0 {Γ} {T} ⊢T =
+--     ⊢transport ⊢beta
+--       (⊢∙ 
+--         -- (⊢λ (⊢lift ⊢T ⊢T) (drv0-lemma0 (⊢lift ⊢T ⊢T))
+--         (⊢λ (⊢lift ⊢T ⊢T) {!   !}
+--           (⊢transport (⊢symmetry ⊢beta) ⊢𝒰))
+--       $⊢)
+
 -- TODO: why does this require a recursive call? isn't that kinda weird?
 {-# TERMINATING #-}
 drv0 : ∀ {Γ} {T a} →
