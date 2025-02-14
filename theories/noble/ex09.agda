@@ -103,15 +103,12 @@ data Drv : Judgment → Set where
   ⊢𝒰 : ∀ {Γ} →
     Drv (Γ ⊢ `𝒰 ⦂ `𝒰)
 
-  -- identity stuff
+  -- identity
 
   ⊢≡ : ∀ {Γ} {a b} →
     Drv (Γ ⊢ a `≡ b ⦂ `𝒰)
 
-  ⊢transport : ∀ {Γ} T {U p a} → 
-    Drv (Γ ⊢ p ⦂ T `≡ U) →
-    Drv (Γ ⊢ a ⦂ T) → 
-    Drv (Γ ⊢ a ⦂ U)
+  -- identity is an equivalence relation
 
   ⊢refl : ∀ {Γ} {a} → 
     Drv (Γ ⊢ `refl ⦂ a `≡ a)
@@ -128,6 +125,15 @@ data Drv : Judgment → Set where
   ⊢cong : ∀ {Γ} {a b} c {pab} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ `refl ⦂ subst 0 a c `≡ subst 0 b c)
+
+  -- identity is a typal equality
+
+  ⊢transport : ∀ {Γ} T {U p a} → 
+    Drv (Γ ⊢ p ⦂ T `≡ U) →
+    Drv (Γ ⊢ a ⦂ T) → 
+    Drv (Γ ⊢ a ⦂ U)
+
+  -- β-equivalence
 
   ⊢β : ∀ {Γ} {a b} →  
     Drv (Γ ⊢ `refl ⦂ `λ b `∙ a `≡ subst 0 a b)
