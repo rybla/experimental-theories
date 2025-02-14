@@ -2,6 +2,8 @@
 
 ## Unipi Theories `theories/unipi`
 
+Just a some simple intensional type theories to serve as a sort of baseline.
+
 ## Noble Theories `theories/noble`
 
 These are [intensional theories](https://ncatlab.org/nlab/show/intensional+type+theory), where there is only one kind of equality, which combines what is usually separated into judgmental and definitional equalities.
