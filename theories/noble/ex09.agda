@@ -8,7 +8,6 @@ import Data.Nat as ℕ
 
 infix 10 _⊢♯_⦂_ _⊢_⦂_
 infix 20 _`≡_
--- infixr 21 _◂_ _`∙_ _`+_ _`×_ _`,_
 infixr 21 _◂_
 infixl 21 _`∙_
 
@@ -27,6 +26,12 @@ data Syn : Set where
   -- identity
   _`≡_ : Syn → Syn → Syn
   `refl : Syn
+  `sym : Syn → Syn
+  `trans : Syn → Syn → Syn
+  `cong : Syn → Syn
+  `β : Syn
+  `η : Syn
+  `υ : Syn
 
 --------------------------------------------------------------------------------
 -- ⊢lifted into larger context
@@ -40,6 +45,12 @@ lift (`Π a b) = `Π (lift a) (lift b)
 lift `𝒰 = `𝒰
 lift (a `≡ b) = lift a `≡ lift b
 lift `refl = `refl
+lift (`sym pab) = `sym (lift pab)
+lift (`trans pab pbc) = `trans (lift pab) (lift pbc)
+lift (`cong p) = `cong (lift p)
+lift `β = `β
+lift `η = `η
+lift `υ = `υ
 
 --------------------------------------------------------------------------------
 -- substitution
@@ -47,15 +58,21 @@ lift `refl = `refl
 
 subst : ℕ → Syn → Syn → Syn
 subst x v (`♯ y) with ℕ.compare x y
-subst x v (`♯ y) | ℕ.less .x k {- y = suc (x + k) -} = `♯ (x ℕ.+ k)
-subst x v (`♯ y) | ℕ.equal .x = v
-subst x v (`♯ y) | ℕ.greater .y k = `♯ y
+subst x v (`♯ y)    | ℕ.less .x k {- y = suc (x + k) -} = `♯ (x ℕ.+ k)
+subst x v (`♯ y)    | ℕ.equal .x = v
+subst x v (`♯ y)    | ℕ.greater .y k = `♯ y
 subst n v (`λ b) = `λ (subst (ℕ.suc n) (lift v) b)
 subst n v (b `∙ a) = subst n v b `∙ subst n v a
 subst n v (`Π a b) = `Π (subst n v a) (subst (ℕ.suc n) (lift v) b)
-subst n v (a `≡ b) = subst n v a `≡ subst n v b
 subst n v `𝒰 = `𝒰
+subst n v (a `≡ b) = subst n v a `≡ subst n v b
 subst n v `refl = `refl
+subst n v (`sym pab) = `sym (subst n v pab)
+subst n v (`trans pab pbc) = `trans (subst n v pab) (subst n v pbc)
+subst n v (`cong p) = `cong (subst n v p)
+subst n v `β = `β
+subst n v `η = `η
+subst n v `υ = `υ
 
 --------------------------------------------------------------------------------
 -- typing derivation
@@ -109,40 +126,42 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a `≡ b ⦂ `𝒰)
 
   -- identity is an equivalence relation
-
+  
   ⊢refl : ∀ {Γ} {a} → 
     Drv (Γ ⊢ `refl ⦂ a `≡ a)
 
-  ⊢sym : ∀ {Γ} {a b p} → 
-    Drv (Γ ⊢ p ⦂ a `≡ b) →
-    Drv (Γ ⊢ `refl ⦂ b `≡ a)
+  ⊢sym : ∀ {Γ} {a b pab} → 
+    Drv (Γ ⊢ pab ⦂ a `≡ b) →
+    Drv (Γ ⊢ `sym pab ⦂ b `≡ a)
 
   ⊢trans : ∀ {Γ} {a b c pab pbc} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ pbc ⦂ b `≡ c) →
-    Drv (Γ ⊢ `refl ⦂ a `≡ b)
+    Drv (Γ ⊢ `trans pab pbc ⦂ a `≡ b)
 
   ⊢cong : ∀ {Γ} {a b} c {pab} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
-    Drv (Γ ⊢ `refl ⦂ subst 0 a c `≡ subst 0 b c)
+    Drv (Γ ⊢ `cong pab ⦂ subst 0 a c `≡ subst 0 b c)
 
-  -- identity can be transported
+  -- extra identities
+
+  ⊢β : ∀ {Γ} {a b} →  
+    Drv (Γ ⊢ `β ⦂ `λ b `∙ a `≡ subst 0 a b)
+
+  ⊢η : ∀ {Γ} {b} → 
+    Drv (Γ ⊢ `refl ⦂ (`λ (lift b `∙ `♯ 0)) `≡ b)
+
+  ⊢υ : ∀ {Γ} {p a b} →
+    Drv (Γ ⊢ p ⦂ a `≡ b) →
+    Drv (Γ ⊢ `υ ⦂ p `≡ `refl)
+
+  -- identity supports transport
 
   ⊢transport : ∀ {Γ} T {U p a} → 
     Drv (Γ ⊢ p ⦂ T `≡ U) →
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
-  -- β-equivalence
-
-  ⊢β : ∀ {Γ} {a b} →  
-    Drv (Γ ⊢ `refl ⦂ `λ b `∙ a `≡ subst 0 a b)
-
-  -- uniqueness of identity proofs
-
-  ⊢≡refl : ∀ {Γ} {p a b} →
-    Drv (Γ ⊢ p ⦂ a `≡ b) →
-    Drv (Γ ⊢ `refl ⦂ p `≡ `refl)
 
 postulate
   ⊢lift : ∀ {Γ} {U T a} →
