@@ -1,4 +1,6 @@
+{-# OPTIONS --rewriting #-}
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+{-# BUILTIN REWRITE _≡_ #-}
 open import Data.Nat using (ℕ; zero; suc)
 import Data.Nat as ℕ
 
@@ -32,6 +34,11 @@ data Syn : Set where
   `β : Syn
   `η : Syn
   `υ : Syn
+
+`0 = `♯ 0
+`1 = `♯ 1
+`2 = `♯ 2
+`3 = `♯ 3
 
 --------------------------------------------------------------------------------
 -- ⊢lifted into larger context
@@ -134,14 +141,14 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ `sym pab ⦂ b `≡ a)
 
-  ⊢trans : ∀ {Γ} {a b c pab pbc} → 
+  ⊢trans : ∀ {Γ} {a} b {c pab pbc} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
     Drv (Γ ⊢ pbc ⦂ b `≡ c) →
-    Drv (Γ ⊢ `trans pab pbc ⦂ a `≡ b)
+    Drv (Γ ⊢ `trans pab pbc ⦂ a `≡ c)
 
   ⊢cong : ∀ {Γ} {a b} c {pab} → 
     Drv (Γ ⊢ pab ⦂ a `≡ b) →
-    Drv (Γ ⊢ `cong pab ⦂ subst 0 a c `≡ subst 0 b c)
+    Drv (Γ ⊢ `cong pab ⦂ c `∙ a `≡ c `∙ b)
 
   -- extra identities
 
@@ -162,7 +169,6 @@ data Drv : Judgment → Set where
     Drv (Γ ⊢ a ⦂ T) → 
     Drv (Γ ⊢ a ⦂ U)
 
-
 postulate
   ⊢lift : ∀ {Γ} {U T a} →
     Drv (Γ ⊢ U ⦂ `𝒰) →
@@ -172,6 +178,12 @@ postulate
   ⊢unlift : ∀ {Γ} {U T a} →
     Drv (U ◂ Γ ⊢ lift a ⦂ lift T) →
     Drv (Γ ⊢ a ⦂ T)
+
+  subst-0-lift : ∀ a T →
+    subst 0 a (lift T) ≡ T
+
+
+{-# REWRITE subst-0-lift #-}
 
 --------------------------------------------------------------------------------
 -- prelude
@@ -274,3 +286,49 @@ module tactics where
 
 open tactics using ($⊢⦂; $⊢[_]⦂; $⊢♯; $⊢♯[_])
 
+module `≡-reasoning where
+  
+  infix  1 begin_ 
+  infixl 2 step-`≡-∣ step-`≡-〉
+  infix  3 _■
+
+  begin_ : ∀ {Γ} {a b pab} → Drv (Γ ⊢ pab ⦂ a `≡ b) → Drv (Γ ⊢ pab ⦂ a `≡ b)
+  begin pab = pab
+
+  step-`≡-∣ : ∀ {Γ} a {b pab} → Drv (Γ ⊢ pab ⦂ a `≡ b) → Drv (Γ ⊢ _ ⦂ a `≡ b)
+  step-`≡-∣ _ pab = pab
+  
+  step-`≡-〉 : ∀ {Γ} a {b c pab pbc} → Drv (Γ ⊢ pab ⦂ a `≡ b) → Drv (Γ ⊢ pbc ⦂ b `≡ c) → Drv (Γ ⊢ _ ⦂ a `≡ c)
+  step-`≡-〉 _ pab pbc = ⊢trans _ pab pbc
+
+  syntax step-`≡-∣ a pab      =  a `≡⟨⟩ pab
+  syntax step-`≡-〉 a pbc pab  =  a `≡⟨  pab ⟩ pbc
+
+  _■ : ∀ {Γ} a → Drv (Γ ⊢ _ ⦂ a `≡ a)
+  _ ■ = ⊢refl
+
+-- open `≡-reasoning
+
+⊢ex0 : ∀ {Γ} {T a} → 
+  Drv (Γ ⊢ T ⦂ `𝒰) →
+  Drv (Γ ⊢ a ⦂ T) →
+  Drv (Γ ⊢ `λ `𝒰 `∙ a ⦂ `𝒰)
+⊢ex0 ⊢T ⊢a =
+  ⊢∙ (⊢λ ⊢T ⊢𝒰 ⊢𝒰) ⊢a
+
+`id = `λ (`λ `0)
+⊢id : ∀ {Γ} → 
+  Drv (Γ ⊢ `id ⦂ `Π `𝒰 (`Π `0 (`♯ 1)))
+⊢id = 
+  ⊢λ ⊢𝒰 (⊢Π $⊢⦂) (⊢λ $⊢⦂ $⊢⦂ $⊢⦂)
+
+⊢ex1 : ∀ {Γ} {T} →
+  Drv (Γ ⊢ T ⦂ `𝒰) →
+  Drv (Γ ⊢ _ ⦂ `id `∙ `𝒰 `∙ T `≡ T)
+⊢ex1 {Γ} {T} ⊢T =
+  ⊢trans (                        `id `∙ `𝒰 `∙ T)     ⊢refl (
+  ⊢trans ((`λ (`0 `∙ lift T)) `∙ (`id `∙ `𝒰)    )     (⊢sym ⊢β) (
+  ⊢trans ((`λ (`0 `∙ lift T)) `∙ (`λ `0)        )      (⊢cong (`λ (`0 `∙ lift T)) ⊢β) (
+  ⊢trans (`λ `0 `∙ T)                                  ⊢β (
+  ⊢trans T                                             ⊢β (
+  ⊢refl)))))
