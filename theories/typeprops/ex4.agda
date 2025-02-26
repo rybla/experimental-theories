@@ -8,7 +8,7 @@ infix  10 _⊢_
 infixl 20 _◂_ _◂♯_
 infixr 30 _`∨_ _`∧_
 infix  31 _`⦂_ -- _`＝_
-infixl 40 _`∙_
+infixl 40 _`∙_ _⊢∙_
 
 data Term : Set where
   `♯ : String → Term
@@ -16,6 +16,8 @@ data Term : Set where
   `Π : String → Term → Term → Term
   _`∙_ : Term → Term → Term
   `𝒰 : Term
+  `⊤ : Term
+  `it : Term
 
 data Prop : Set where
   _`⦂_ : Term → Term → Prop 
@@ -31,15 +33,17 @@ data Ctx : Set where
 
 substTerm : String → Term → Term → Term
 substTerm x a (`♯ y) = if does (x String.≟ y) then a else `♯ y
-substTerm x a (`λ y t) = `λ y (substTerm x a t)
-substTerm x a (`Π y t u) = `Π y (substTerm x a t) (substTerm x a u)
+substTerm x a (`λ y t) = if does (x String.≟ y) then `λ y t else `λ y (substTerm x a t)
+substTerm x a (`Π y t u) = `Π y (substTerm x a t) (if does (x String.≟ y) then u else substTerm x a u)
 substTerm x a (t `∙ u) = substTerm x a t `∙ substTerm x a u
 substTerm x a `𝒰 = `𝒰
+substTerm x a `⊤ = `⊤
+substTerm x a `it = `it
 
 substProp : String → Term → Prop → Prop
 substProp x a (t `⦂ u) = substTerm x a t `⦂ substTerm x a u
-substProp x a (`∀ y P) = `∀ y (substProp x a P)
-substProp x a (`∃ y P) = `∃ y (substProp x a P)
+substProp x a (`∀ y P) = if does (x String.≟ y) then `∀ y P else `∀ y (substProp x a P)
+substProp x a (`∃ y P) = if does (x String.≟ y) then `∃ y P else `∃ y (substProp x a P)
 substProp x a (P `∨ Q) = substProp x a P `∨ substProp x a Q
 substProp x a (P `∧ Q) = substProp x a P `∨ substProp x a Q
 
@@ -61,16 +65,22 @@ data _⊢_ : Ctx → Prop → Set where
 
   ⊢Π : ∀ {Γ} {x} {t u} →
     Γ ⊢ t `⦂ `𝒰 →
-    Γ ◂ (`♯ "x" `⦂ `𝒰) ◂♯ "x" ⊢ u `⦂ `𝒰 →
+    Γ ◂ (`♯ x `⦂ `𝒰) ◂♯ x ⊢ u `⦂ `𝒰 →
     Γ ⊢ `Π x t u `⦂ `𝒰
 
-  ⊢∙ : ∀ {Γ} {x} {t u f a} → 
+  _⊢∙_ : ∀ {Γ} {x} {t u f a} →
     Γ ⊢ f `⦂ `Π x t u → 
     Γ ⊢ a `⦂ t →
-    Γ ⊢ f `∙ a `⦂ substTerm x a f
+    Γ ⊢ f `∙ a `⦂ substTerm x a u
 
   ⊢𝒰 : ∀ {Γ} →
     Γ ⊢ `𝒰 `⦂ `𝒰
+
+  ⊢⊤ : ∀ {Γ} →
+    Γ ⊢ `⊤ `⦂ `𝒰
+
+  ⊢it : ∀ {Γ} → 
+    Γ ⊢ `it `⦂ `⊤
 
   ⊢∀ : ∀ {Γ} {x} {P} →
     Γ ◂♯ x ⊢ P →
@@ -79,6 +89,11 @@ data _⊢_ : Ctx → Prop → Set where
   ⊢∃ : ∀ {Γ} {x} t {P} →
     Γ ⊢ substProp x t P →
     Γ ⊢ `∃ x P
+
+  ⊢∃ind : ∀ {Γ} {x} {P Q} →
+    Γ ⊢ `∃ x P →
+    Γ ◂♯ x ◂ P ⊢ Q →
+    Γ ⊢ Q
 
   ⊢∨₁ : ∀ {Γ} {P Q} → 
     Γ ⊢ P → 
@@ -93,12 +108,29 @@ data _⊢_ : Ctx → Prop → Set where
     Γ ⊢ Q →
     Γ ⊢ P `∧ Q  
 
-⊢let : ∀ {Γ} → 
-  Γ ⊢ `∃ "let" (`♯ "let" `⦂ `Π "A" `𝒰 (`Π "B" `𝒰 (`Π "a" (`♯ "A") (`Π "f" (`Π "x" (`♯ "A") (`♯ "B")) (`♯ "B")))))
-⊢let = 
-  ⊢∃
-    (`λ "A" (`λ "B" (`λ "a" (`λ "f" (`♯ "f" `∙ `♯ "a")))))
-    -- (⊢λ (⊢λ (⊢λ (⊢λ (⊢∙ (⊢wkn ⊢asm) (⊢wkn (⊢wkn ⊢asm)))))))
-    (⊢λ (⊢λ (⊢λ (⊢λ (⊢∙ (⊢wkn♯ ⊢asm) (⊢wkn♯ (⊢wkn (⊢wkn♯ ⊢asm))))))))
+`let : Term
+`let = `λ "A" (`λ "B" (`λ "a" (`λ "f" (`♯ "f" `∙ `♯ "a"))))
 
+`Let : Term
+`Let = `Π "A" `𝒰 (`Π "B" `𝒰 (`Π "a" (`♯ "A") (`Π "f" (`Π "x" (`♯ "A") (`♯ "B")) (`♯ "B"))))
+
+⊢let : ∀ {Γ} → Γ ⊢ `let `⦂ `Let
+⊢let = (⊢λ (⊢λ (⊢λ (⊢λ (⊢wkn♯ ⊢asm ⊢∙ ⊢wkn♯ (⊢wkn (⊢wkn♯ ⊢asm)))))))
+
+⊢id : ∀ {Γ} → Γ ⊢ `∃ "id" (`♯ "id" `⦂ `Π "A" `𝒰 (`Π "x" (`♯ "A") (`♯ "A")))
+⊢id = ⊢∃ 
+  (`λ "A" (`λ "x" (`♯ "x")))
+  (⊢λ (⊢λ (⊢wkn♯ ⊢asm)))
+
+`ex1 : Term
+`ex1 = 
+  `let `∙ `Π "x" `⊤ `⊤ `∙ `⊤ `∙
+    `λ "x" (`♯ "x") `∙ 
+    `λ "x" (`♯ "x" `∙ `it)
+
+⊢ex1 : ∀ {Γ} → Γ ⊢ `ex1 `⦂ `⊤
+⊢ex1 =
+  ⊢let ⊢∙ ⊢Π ⊢⊤ ⊢⊤ ⊢∙ ⊢⊤ ⊢∙ 
+    ⊢λ (⊢wkn♯ ⊢asm) ⊢∙
+    ⊢λ (⊢wkn♯ ⊢asm ⊢∙ ⊢it)
 
